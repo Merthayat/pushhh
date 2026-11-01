@@ -848,281 +848,58 @@ export const findActivityIndex = (
       const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id.startsWith('other_') && a.type === 'word_game' && a.wordGameType === wordGameType);
       if (idx !== -1) return idx;
     }
+    if (topicKey) {
+      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id.startsWith('other_') && (a.topicKey === topicKey || a.id === `other_${topicKey}` || a.id.includes(topicKey)));
+      if (idx !== -1) return idx;
+    }
     if (type) {
       const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id.startsWith('other_') && a.type === type);
       if (idx !== -1) return idx;
     }
+  }
+
+  // If grade is specified (1, 2, 3, 4), strictly look within that grade first!
+  if (grade) {
+    if (wordGameType) {
+      const wgIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.grade === grade && a.wordGameType === wordGameType);
+      if (wgIdx !== -1) return wgIdx;
+    }
+
     if (topicKey) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id.startsWith('other_') && (a.topicKey === topicKey || a.id.includes(topicKey)));
-      if (idx !== -1) return idx;
+      // 1. Exact match by topicKey & grade
+      const exactIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.grade === grade && a.topicKey === topicKey);
+      if (exactIdx !== -1) return exactIdx;
+
+      // 2. Exact match by generated id (e.g. g2_kesirler)
+      const idIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.grade === grade && (a.id === `g${grade}_${topicKey}` || a.id === topicKey));
+      if (idIdx !== -1) return idIdx;
+
+      // 3. Partial match inside the same grade
+      const partialIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.grade === grade && (a.id.includes(topicKey) || (a.topicKey && a.topicKey.includes(topicKey))));
+      if (partialIdx !== -1) return partialIdx;
+    }
+
+    if (type) {
+      const typeIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.grade === grade && a.type === type);
+      if (typeIdx !== -1) return typeIdx;
     }
   }
-  if (type === 'saat_zaman' || topicKey === 'saat_zaman' || topicKey === 'zaman_olcme' || topicKey === 'saat_tam' || topicKey === 'saat_yarim' || topicKey === 'saat_ceyrek_gece' || topicKey === 'saat_ceyrek_kala' || topicKey === 'g3_zaman_olcme') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'saat_zaman' || a.id.includes('saat_zaman') || a.id.includes('zaman_olcme')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'saat_zaman' || a.id.includes('saat_zaman') || a.id.includes('zaman_olcme'));
+
+  // Special topic mappings fallback (when no grade was matched or grade is null)
+  if (wordGameType) {
+    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'word_game' && a.wordGameType === wordGameType && (!grade || a.grade === grade));
     if (idx !== -1) return idx;
   }
-  if (type === 'market_kasasi' || topicKey === 'market_kasasi' || topicKey === 'paralarimiz' || topicKey === 'g3_paralarimiz_lira_kurus') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'market_kasasi' || a.id.includes('market_kasasi') || a.id.includes('paralarimiz')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'market_kasasi' || a.id.includes('market_kasasi') || a.id.includes('paralarimiz'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'kesir_duvari_pizza' || topicKey === 'kesir_duvari_pizza' || topicKey === 'kesirler' || topicKey === 'g3_birim_kesirler' || topicKey === 'g4_birim_kesirler_karsilastirma') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kesir_duvari_pizza' || a.id.includes('kesir_duvari_pizza') || a.id.includes('kesirler')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'kesir_duvari_pizza' || a.id.includes('kesir_duvari_pizza') || a.id.includes('kesirler'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'es_sesli' || topicKey === 'es_sesli' || topicKey === 'turkce_es_sesli' || topicKey === 'sestes') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'es_sesli' || a.id.includes('es_sesli')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'es_sesli' || a.id.includes('es_sesli'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'denge_terazisi' || topicKey === 'denge_terazisi' || topicKey === 'tartma_olcme' || topicKey === 'g3_tartma_gram_kilogram' || topicKey === 'g4_tartma_ton_miligram') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'denge_terazisi' || a.id.includes('denge_terazisi') || a.id.includes('tartma_olcme')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'denge_terazisi' || a.id.includes('denge_terazisi') || a.id.includes('tartma_olcme'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'dedektif_5n1k' || topicKey === 'dedektif_5n1k' || topicKey === 'turkce_dedektif_5n1k') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'dedektif_5n1k' || a.id.includes('dedektif_5n1k')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'dedektif_5n1k' || a.id.includes('dedektif_5n1k'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'lesson_video') {
-    if (topicKey) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'lesson_video' && (a.id === topicKey || a.topicKey === topicKey || a.id.includes(topicKey)));
-      if (idx !== -1) return idx;
-    }
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'lesson_video' && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'lesson_video');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'sayi_basketi' || topicKey === 'sayi_basketi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sayi_basketi' || a.id.includes('sayi_basketi') || a.topicKey === 'sayi_basketi') && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'sayi_basketi' || a.id.includes('sayi_basketi') || a.topicKey === 'sayi_basketi');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'satir_sonu_hece' || topicKey === 'satir_sonu_hece' || topicKey === 'turkce_satir_sonu_hece') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'satir_sonu_hece' || a.id.includes('satir_sonu_hece')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'satir_sonu_hece' || a.id.includes('satir_sonu_hece'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'noktalama_avcisi' || topicKey === 'noktalama_avcisi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'noktalama_avcisi' || a.id.includes('noktalama_avcisi')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'noktalama_avcisi' || a.id.includes('noktalama_avcisi'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'harf_corbasi' || topicKey === 'harf_corbasi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'harf_corbasi' || a.id.includes('harf_corbasi')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'harf_corbasi' || a.id.includes('harf_corbasi'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'geri_donusum' || topicKey === 'geri_donusum') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geri_donusum' || a.id.includes('geri_donusum')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'geri_donusum' || a.id.includes('geri_donusum'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'saglikli_tabak' || topicKey === 'saglikli_tabak') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'saglikli_tabak' || a.id.includes('saglikli_tabak')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'saglikli_tabak' || a.id.includes('saglikli_tabak'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'istek_ihtiyac' || topicKey === 'istek_ihtiyac') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'istek_ihtiyac' || a.id.includes('istek_ihtiyac')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'istek_ihtiyac' || a.id.includes('istek_ihtiyac'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'mevsim_gardirobu' || topicKey === 'mevsim_gardirobu') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'mevsim_gardirobu' || a.id.includes('mevsim_gardirobu')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'mevsim_gardirobu' || a.id.includes('mevsim_gardirobu'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'yazim_dedektifi' || topicKey === 'yazim_dedektifi' || topicKey === 'turkce_yazim_dedektifi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'yazim_dedektifi' || a.id.includes('yazim_dedektifi')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'yazim_dedektifi' || a.id.includes('yazim_dedektifi'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'hece_makasi' || topicKey === 'hece_makasi' || topicKey === 'turkce_hece_makasi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'hece_makasi' || a.id.includes('hece_makasi')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'hece_makasi' || a.id.includes('hece_makasi'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'geometrik_sekilleri_bul' || topicKey === 'geometrik_sekilleri_bul') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geometrik_sekilleri_bul' || a.id.includes('geometrik_sekilleri_bul')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'geometrik_sekilleri_bul' || a.id.includes('geometrik_sekilleri_bul'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'hece_sayisi' || topicKey === 'turkce_hece_sayisi' || topicKey === 'hece_sayisi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'hece_sayisi' || a.id.includes('hece_sayisi')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'hece_sayisi' || a.id.includes('hece_sayisi'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'sozluk_sirala' || topicKey === 'sozluk_sirala' || topicKey === 'turkce_sozluk_sirala') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sozluk_sirala' || a.id.includes('sozluk_sirala')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'sozluk_sirala' || a.id.includes('sozluk_sirala'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'kelime_sirala' || topicKey === 'kelime_sirala' || topicKey === 'turkce_kelime_sirala') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kelime_sirala' || a.id.includes('kelime_sirala')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'kelime_sirala' || a.id.includes('kelime_sirala'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'kuralli_cumle' || topicKey === 'kuralli_cumle' || topicKey === 'turkce_kuralli_cumle') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kuralli_cumle' || a.id.includes('kuralli_cumle')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'kuralli_cumle' || a.id.includes('kuralli_cumle'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'word_game' || wordGameType || topicKey === 'turkce_zit_anlam' || topicKey === 'turkce_es_anlam') {
-    const effectiveWgType = wordGameType || (topicKey === 'turkce_zit_anlam' ? 'zit_anlam' : topicKey === 'turkce_es_anlam' ? 'es_anlam' : null);
-    if (effectiveWgType) {
-      if (grade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'word_game' && a.wordGameType === effectiveWgType && a.grade === grade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'word_game' && a.wordGameType === effectiveWgType);
-      if (idx !== -1) return idx;
-    }
-  }
-  if (type === 'geometric_nets' || topicKey === 'cisimler_acilimi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geometric_nets' || a.topicKey === 'cisimler_acilimi') && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'geometric_nets' || a.topicKey === 'cisimler_acilimi');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'xox') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'xox' && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'xox');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'abluka' || topicKey === 'abluka') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'abluka' || a.id.includes('abluka')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'abluka' || a.id.includes('abluka'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'sudoku' || topicKey === 'sudoku') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sudoku' || a.id.includes('sudoku')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'sudoku' || a.id.includes('sudoku'));
-    if (idx !== -1) return idx;
-  }
-  if (type === 'sivi_tahmin_akvaryum' || topicKey === 'sivi_tahmin_akvaryum') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sivi_tahmin_akvaryum' || a.id.includes('sivi_tahmin_akvaryum')) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'sivi_tahmin_akvaryum' || a.id.includes('sivi_tahmin_akvaryum'));
-    if (idx !== -1) return idx;
-  }
-  if (type === '3d_lab') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === '3d_lab' && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === '3d_lab');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'aynisini_bul') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'aynisini_bul' && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'aynisini_bul');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'geoboard' || topicKey === 'geometri_tahtasi') {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geoboard' || a.topicKey === 'geometri_tahtasi') && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'geoboard');
-    if (idx !== -1) return idx;
-  }
-  if (type === 'school_life' || topicKey === 'school_life') {
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'school_life' || a.id === 'english_school_life');
-    if (idx !== -1) return idx;
-  }
+
   if (topicKey) {
-    if (grade) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.topicKey === topicKey || a.id === `g${grade}_${topicKey}`) && a.grade === grade);
-      if (idx !== -1) return idx;
-    }
-    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.topicKey === topicKey || a.id === topicKey);
+    const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.topicKey === topicKey || a.id === topicKey || a.id.includes(topicKey)) && (!grade || a.grade === grade));
     if (idx !== -1) return idx;
   }
-  return -1;
+
+  if (type) {
+    const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === type && (!grade || a.grade === grade));
+    if (idx !== -1) return idx;
+  }
+
+  return 0;
 };

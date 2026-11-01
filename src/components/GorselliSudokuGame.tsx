@@ -8,6 +8,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 export interface GorselliSudokuGameProps {
   onClose: () => void;
@@ -885,16 +886,8 @@ export const GorselliSudokuGame: React.FC<GorselliSudokuGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden bg-slate-950 text-white"
     >
-      {/* BACKGROUND IMAGE WITH MOODY GRADIENT OVERLAY */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105"
-        />
-        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* TOP HEADER CONTROLS */}
       <header className="relative z-30 px-2 sm:px-4 py-1.5 bg-slate-950/95 border-b border-cyan-500/40 flex items-center justify-between shrink-0 shadow-xl gap-2 flex-wrap sm:flex-nowrap">

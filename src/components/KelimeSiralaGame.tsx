@@ -13,6 +13,7 @@ import {
 } from '../data/kelimeSiralaData';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 interface KelimeSiralaGameProps {
   onClose: () => void;
@@ -499,48 +500,45 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
     }
   };
 
-  // Player themes
+  // Player themes (2 ve 3 kişilik modlar için ferah, canlı ve açık renkler)
   const getPlayerTheme = (colorName: 'blue' | 'pink' | 'orange') => {
     switch (colorName) {
       case 'blue':
         return {
-          bgGrad: 'from-[#0b1536] via-[#091b40] to-[#04091a]',
-          cardBg: 'bg-blue-950/70 border-cyan-400/50',
-          portalGlow: 'shadow-[0_0_50px_rgba(6,182,212,0.85)]',
-          portalRing1: 'border-cyan-400',
-          portalInner: 'bg-radial from-cyan-400/40 via-blue-600/50 to-blue-950',
-          coreRing: 'border-cyan-300',
-          slotEmpty: 'bg-blue-950/50 border-cyan-500/40 text-cyan-300',
-          slotFilled: 'bg-gradient-to-br from-cyan-500 to-blue-600 border-cyan-300 text-white shadow-[0_0_15px_rgba(6,182,212,0.6)]',
-          pillHeader: 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40',
-          runBtn: 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.5)] active:scale-95'
+          bgGrad: 'from-[#f0f7ff] via-[#e0f0fe] to-[#bae6fd]',
+          cardBg: 'bg-white/95 border-2 border-sky-300 shadow-[0_10px_25px_rgba(56,189,248,0.2)]',
+          slotEmpty: 'bg-sky-50/90 border-dashed border-sky-400 text-sky-600 hover:border-sky-500',
+          slotFilled: 'bg-gradient-to-br from-sky-500 via-sky-600 to-blue-600 border-2 border-sky-300 text-white shadow-md',
+          pillHeader: 'bg-sky-100 text-sky-950 border-2 border-sky-300',
+          tipColor: 'text-sky-950',
+          resetBtn: 'text-sky-700 hover:text-sky-900',
+          emptySourceSlot: 'bg-sky-200/50 border border-dashed border-sky-300',
+          runBtn: 'bg-gradient-to-r from-sky-500 via-blue-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white border-2 border-sky-200 shadow-[0_6px_20px_rgba(14,165,233,0.35)] active:scale-95'
         };
       case 'pink':
         return {
-          bgGrad: 'from-[#2b0824] via-[#36092e] to-[#140212]',
-          cardBg: 'bg-pink-950/70 border-pink-400/50',
-          portalGlow: 'shadow-[0_0_50px_rgba(244,114,182,0.85)]',
-          portalRing1: 'border-pink-400',
-          portalInner: 'bg-radial from-pink-400/40 via-rose-600/50 to-pink-950',
-          coreRing: 'border-pink-300',
-          slotEmpty: 'bg-pink-950/50 border-pink-500/40 text-pink-300',
-          slotFilled: 'bg-gradient-to-br from-pink-500 to-rose-600 border-pink-300 text-white shadow-[0_0_15px_rgba(244,114,182,0.6)]',
-          pillHeader: 'bg-pink-500/20 text-pink-300 border-pink-400/40',
-          runBtn: 'bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white border-pink-300 shadow-[0_0_20px_rgba(244,114,182,0.5)] active:scale-95'
+          bgGrad: 'from-[#fff0f5] via-[#ffe4e6] to-[#fbcfe8]',
+          cardBg: 'bg-white/95 border-2 border-pink-300 shadow-[0_10px_25px_rgba(244,114,182,0.2)]',
+          slotEmpty: 'bg-pink-50/90 border-dashed border-pink-400 text-pink-600 hover:border-pink-500',
+          slotFilled: 'bg-gradient-to-br from-pink-500 via-rose-500 to-rose-600 border-2 border-pink-300 text-white shadow-md',
+          pillHeader: 'bg-pink-100 text-pink-950 border-2 border-pink-300',
+          tipColor: 'text-pink-950',
+          resetBtn: 'text-pink-700 hover:text-pink-900',
+          emptySourceSlot: 'bg-pink-200/50 border border-dashed border-pink-300',
+          runBtn: 'bg-gradient-to-r from-pink-500 via-rose-500 to-rose-600 hover:from-pink-400 hover:to-rose-500 text-white border-2 border-pink-200 shadow-[0_6px_20px_rgba(244,114,182,0.35)] active:scale-95'
         };
       case 'orange':
       default:
         return {
-          bgGrad: 'from-[#301602] via-[#3b1c05] to-[#170a01]',
-          cardBg: 'bg-amber-950/70 border-amber-400/50',
-          portalGlow: 'shadow-[0_0_50px_rgba(245,158,11,0.85)]',
-          portalRing1: 'border-amber-400',
-          portalInner: 'bg-radial from-amber-400/40 via-orange-600/50 to-amber-950',
-          coreRing: 'border-amber-300',
-          slotEmpty: 'bg-amber-950/50 border-amber-500/40 text-amber-300',
-          slotFilled: 'bg-gradient-to-br from-amber-500 to-orange-600 border-amber-300 text-white shadow-[0_0_15px_rgba(245,158,11,0.6)]',
-          pillHeader: 'bg-amber-500/20 text-amber-300 border-amber-400/40',
-          runBtn: 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.5)] active:scale-95'
+          bgGrad: 'from-[#fffbeb] via-[#fef3c7] to-[#fde68a]',
+          cardBg: 'bg-white/95 border-2 border-amber-300 shadow-[0_10px_25px_rgba(245,158,11,0.2)]',
+          slotEmpty: 'bg-amber-50/90 border-dashed border-amber-400 text-amber-600 hover:border-amber-500',
+          slotFilled: 'bg-gradient-to-br from-amber-500 via-orange-500 to-orange-600 border-2 border-amber-300 text-white shadow-md',
+          pillHeader: 'bg-amber-100 text-amber-950 border-2 border-amber-300',
+          tipColor: 'text-amber-950',
+          resetBtn: 'text-amber-700 hover:text-amber-900',
+          emptySourceSlot: 'bg-amber-200/50 border border-dashed border-amber-300',
+          runBtn: 'bg-gradient-to-r from-amber-500 via-orange-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white border-2 border-amber-200 shadow-[0_6px_20px_rgba(245,158,11,0.35)] active:scale-95'
         };
     }
   };
@@ -582,16 +580,8 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] xs:top-[60px] sm:top-[74px] md:top-[80px] z-[200] flex flex-col bg-[#050811] text-white select-none overflow-hidden font-sans"
     >
-      {/* 1. STANDART ESKİ ARKA PLAN GÖRSELİ (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center pointer-events-none select-none filter brightness-95" 
-        />
-        <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ KELİME SIRALAMA ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* 2. ALPHABET & DICTIONARY GUIDE POPUP STRIP */}
       {showDictionaryGuide && (
@@ -787,7 +777,7 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
             </div>
           );
         })() : (
-          <div className="flex-1 flex flex-row relative min-h-0 h-full w-full overflow-hidden rounded-2xl border border-slate-800 shadow-2xl">
+          <div className="flex-1 flex flex-row relative min-h-0 h-full w-full overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-white/70 shadow-2xl backdrop-blur-xs">
           {players.map((player, pIdx) => {
             const theme = getPlayerTheme(player.colorName);
             const isWinnerThisRound = roundWinner === pIdx;
@@ -805,22 +795,26 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                 >
                   {/* Top Player Info Bar */}
                   <div className="relative z-10 flex items-center justify-between gap-1 pb-1 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      {assignedPlayerStudent && (
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-900/90 border border-white/40 flex items-center justify-center text-xs sm:text-sm">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/90 border border-slate-200/90 shadow-xs">
+                      {assignedPlayerStudent ? (
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 border border-white text-slate-950 font-black flex items-center justify-center text-xs sm:text-sm shadow-xs shrink-0">
                           {assignedPlayerStudent.avatar}
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-slate-800 text-white font-black text-[11px] flex items-center justify-center shrink-0">
+                          {player.id}
                         </div>
                       )}
                       <div>
-                        <span className="font-black text-xs sm:text-sm md:text-base text-white tracking-wide drop-shadow block">
+                        <span className="font-black text-xs sm:text-sm md:text-base text-slate-900 tracking-tight block">
                           {assignedPlayerStudent ? assignedPlayerStudent.name : player.name}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-black/50 border border-amber-400/70 shadow-md">
-                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-                      <span className="text-xs sm:text-sm font-black text-amber-300">
+                    <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl bg-amber-400 border border-amber-300 text-slate-950 shadow-xs">
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-950" />
+                      <span className="text-xs sm:text-sm font-black text-slate-950">
                         {player.score} Puan
                       </span>
                     </div>
@@ -844,13 +838,13 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                   {/* 3.2 MAIN INTERACTIVE WORDS CONSOLE CONTAINER */}
                   <div className={`relative z-10 w-full ${playerMode === 1 ? 'max-w-2xl' : playerMode === 2 ? 'max-w-xl' : 'max-w-lg'} mx-auto flex flex-col items-center justify-center flex-1 min-h-0 ${playerMode === 3 ? 'gap-1' : 'gap-1.5'}`}>
                     {/* Console Header Pill Badge */}
-                    <div className={`px-3 py-0.5 rounded-full font-black ${playerMode === 3 ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm'} uppercase tracking-wider border shadow-md flex items-center gap-1.5 shrink-0 ${theme.pillHeader}`}>
+                    <div className={`px-3 py-0.5 rounded-full font-black ${playerMode === 3 ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm'} uppercase tracking-wider border shadow-sm flex items-center gap-1.5 shrink-0 ${theme.pillHeader}`}>
                       <Layers className="w-3.5 h-3.5" />
                       <span>SÖZLÜK SIRASINA GÖRE DİZ</span>
                     </div>
 
-                    {/* Glassy Card holding Upper Target Slots and Lower Tray */}
-                    <div className={`w-full rounded-2xl border shadow-2xl flex flex-col ${playerMode === 3 ? 'p-1.5 gap-1' : 'p-2 sm:p-2.5 gap-1.5'} ${theme.cardBg}`}>
+                    {/* Glassy Light Card holding Upper Target Slots and Lower Tray */}
+                    <div className={`w-full rounded-2xl border shadow-xl flex flex-col ${playerMode === 3 ? 'p-1.5 gap-1' : 'p-2 sm:p-2.5 gap-1.5'} ${theme.cardBg}`}>
                       {/* UPPER TARGET ROW: BLANK / PLACED SLOTS FOR DICTIONARY ORDER */}
                       <div className={`grid ${wordCount === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} items-center justify-center w-full ${playerMode === 3 ? 'gap-1 sm:gap-1.5' : 'gap-1.5 sm:gap-2'}`}>
                         {player.upperSlots.map((word, slotIdx) => (
@@ -863,21 +857,21 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                             onDragStart={(e) => word && handleDragStartTarget(e, pIdx, word, slotIdx)}
                             className={`min-w-0 w-full min-h-[46px] xs:min-h-[52px] sm:min-h-[62px] md:min-h-[72px] rounded-xl sm:rounded-2xl border-2 sm:border-3 flex flex-col items-center justify-center p-1 sm:p-1.5 transition-all cursor-pointer font-black select-none text-center overflow-hidden ${
                               word 
-                                ? `${theme.slotFilled} hover:scale-105 active:scale-95 shadow-lg` 
-                                : `${theme.slotEmpty} border-dashed hover:border-white/80`
+                                ? `${theme.slotFilled} hover:scale-105 active:scale-95 shadow-md` 
+                                : `${theme.slotEmpty} border-dashed`
                             }`}
                           >
-                            <span className="text-[8.5px] xs:text-[9px] sm:text-[10px] uppercase font-extrabold opacity-75 leading-none mb-0.5 shrink-0">
+                            <span className={`text-[8.5px] xs:text-[9px] sm:text-[10px] uppercase font-extrabold leading-none mb-0.5 shrink-0 ${word ? 'opacity-90 text-white' : 'text-slate-500'}`}>
                               {slotIdx + 1}. Sözcük
                             </span>
                             {word ? (
-                              <span className={`font-black uppercase max-w-full w-full break-words hyphens-auto text-center px-0.5 drop-shadow-sm ${
+                              <span className={`font-black uppercase max-w-full w-full break-words hyphens-auto text-center px-0.5 drop-shadow-sm text-white ${
                                 word.length >= 7 ? 'tracking-normal' : 'tracking-wide'
                               } ${getWordFontSize(word, playerMode, wordCount)}`}>
                                 {word}
                               </span>
                             ) : (
-                              <span className="text-white/40 text-xs sm:text-sm font-black">
+                              <span className="text-slate-400 text-xs sm:text-sm font-black">
                                 ---
                               </span>
                             )}
@@ -886,12 +880,12 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                       </div>
 
                       {/* DIVIDER LINE WITH HELPFUL TIP */}
-                      <div className={`w-full flex items-center justify-between px-1 font-semibold text-white/70 ${playerMode === 3 ? 'text-[8.5px] sm:text-[9.5px]' : 'text-[9.5px] sm:text-xs'}`}>
+                      <div className={`w-full flex items-center justify-between px-1 font-bold ${playerMode === 3 ? 'text-[8.5px] sm:text-[9.5px]' : 'text-[9.5px] sm:text-xs'} ${theme.tipColor}`}>
                         <span>Kelimelere dokunarak sıraya diz:</span>
                         {player.upperSlots.some(s => s !== null) && (
                           <button
                             onClick={() => handleResetPlayerSlots(pIdx)}
-                            className="text-white/90 hover:text-white underline font-bold transition-colors cursor-pointer"
+                            className={`${theme.resetBtn} underline font-bold transition-colors cursor-pointer`}
                           >
                             Sıfırla
                           </button>
@@ -912,7 +906,7 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                                   draggable
                                   onDragStart={(e) => handleDragStartSource(e, pIdx, word, wordIdx)}
                                   onClick={() => handleTapSourceWord(pIdx, word, wordIdx)}
-                                  className={`w-full min-w-0 h-full rounded-xl sm:rounded-2xl bg-white text-slate-900 border-2 sm:border-3 border-slate-100 shadow-[0_6px_14px_rgba(0,0,0,0.35)] hover:scale-105 active:scale-95 transition-all flex items-center justify-center p-1 sm:p-1.5 font-black uppercase cursor-pointer select-none text-center overflow-hidden ${
+                                  className={`w-full min-w-0 h-full rounded-xl sm:rounded-2xl bg-white text-slate-900 border-2 sm:border-[2.5px] border-slate-200/90 shadow-[0_4px_10px_rgba(0,0,0,0.08)] hover:scale-105 hover:border-slate-400 active:scale-95 transition-all flex items-center justify-center p-1 sm:p-1.5 font-black uppercase cursor-pointer select-none text-center overflow-hidden ${
                                     word.length >= 7 ? 'tracking-normal' : 'tracking-wide'
                                   }`}
                                 >
@@ -921,7 +915,7 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                                   </span>
                                 </div>
                               ) : (
-                                <div className="w-full h-full rounded-xl bg-black/25 border border-white/10" />
+                                <div className={`w-full h-full rounded-xl ${theme.emptySourceSlot}`} />
                               )}
                             </div>
                           );
@@ -951,8 +945,8 @@ export const KelimeSiralaGame: React.FC<KelimeSiralaGameProps> = ({
                 {/* VS DIVIDER BADGE BETWEEN PLAYERS */}
                 {pIdx < players.length - 1 && (
                   <div className="relative z-20 flex flex-col items-center justify-center shrink-0 w-0">
-                    <div className="w-[2px] sm:w-[3px] h-full bg-white/40 shadow-sm" />
-                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 px-2 py-1 rounded-xl bg-slate-950 text-white font-black text-[10px] sm:text-xs tracking-widest border-2 border-white shadow-[0_0_15px_rgba(0,0,0,0.8)] z-30">
+                    <div className="w-[3px] sm:w-[4px] h-full bg-slate-300/80 shadow-xs" />
+                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 px-2.5 py-1 rounded-xl bg-white text-slate-900 font-black text-[10px] sm:text-xs tracking-widest border-2 border-slate-300 shadow-[0_4px_12px_rgba(0,0,0,0.15)] z-30">
                       VS
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 interface XOXGameProps {
   onClose: () => void;
@@ -305,15 +306,8 @@ export const XOXGame: React.FC<XOXGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[48px] xs:top-[56px] sm:top-[68px] md:top-[74px] z-40 overflow-y-auto lg:overflow-hidden flex flex-col items-center justify-between p-1 sm:p-2 font-sans select-none bg-gradient-to-br from-sky-100 via-blue-50 to-amber-50/70 dark:from-[#0B132B] dark:via-blue-950 dark:to-slate-950 text-blue-950 dark:text-gray-100"
     >
-      {/* SAME POSITIVE BACKGROUND IMAGE AS OTHER CLASSROOM ACTIVITIES */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105"
-        />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ XOX OYUN ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* Top Game Bar - Compact, below global navigation header */}
       <div className="relative z-10 w-full max-w-xl flex items-center justify-between gap-1.5 shrink-0 mb-0.5 px-1">

@@ -5,6 +5,7 @@ import {
   HelpCircle, CheckCircle2, ChevronRight, Volume2, VolumeX,
   Layers, Box, Eye, ZoomIn, ZoomOut
 } from 'lucide-react';
+import { ActivityBackground } from './ActivityBackground';
 
 export interface GeometricNetsActivityProps {
   onClose: () => void;
@@ -836,16 +837,8 @@ export const GeometricNetsActivity: React.FC<GeometricNetsActivityProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[220] flex flex-col font-sans select-none overflow-hidden bg-slate-950 text-white"
     >
-      {/* 1. BACKGROUND IMAGE (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105 blur-[0.5px]"
-        />
-        <div className="absolute inset-0 bg-slate-950/70 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ GEOMETRİK AÇINIMLAR ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* 3. MAIN WORKSPACE - 3-COLUMN INTERFACE (SOLIDS LIST, 3D STAGE, FOLDING SLIDER) */}
       <div className="flex-1 flex flex-col md:flex-row min-h-0 relative overflow-hidden">

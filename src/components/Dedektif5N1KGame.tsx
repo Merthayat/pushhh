@@ -9,6 +9,7 @@ import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
 import { AutoFitOptionContent } from './AutoFitOptionContent';
 import { ActivityQuestionFrame } from './ActivityQuestionFrame';
+import { ActivityBackground } from './ActivityBackground';
 
 import { 
   Dedektif5N1KStory, 
@@ -355,16 +356,8 @@ export const Dedektif5N1KGame: React.FC<Dedektif5N1KGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden bg-slate-900 text-white"
     >
-      {/* 1. STANDART ESKİ ARKA PLAN GÖRSELİ (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center pointer-events-none select-none filter brightness-95" 
-        />
-        <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* Main Game Arena */}
       <main className={`relative z-10 flex-1 w-full ${

@@ -7,6 +7,7 @@ import {
 import confetti from 'canvas-confetti';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 interface AblukaGameProps {
   onClose: () => void;
@@ -398,16 +399,8 @@ export const AblukaGame: React.FC<AblukaGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] xs:top-[60px] sm:top-[74px] md:top-[80px] z-40 flex flex-col font-sans select-none overflow-hidden bg-gradient-to-br from-sky-100 via-blue-50 to-amber-50/70 dark:from-[#0B132B] dark:via-blue-950 dark:to-slate-950 text-white"
     >
-      {/* SAME BACKGROUND IMAGE AS XOX GAME (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105"
-        />
-        <div className="absolute inset-0 bg-slate-950/20 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* TOP HEADER CONTROLS */}
       <header className="relative z-20 px-2 sm:px-6 py-1.5 sm:py-2 bg-slate-950/95 border-b border-amber-400/30 flex items-center justify-between shrink-0 shadow-md">

@@ -14,6 +14,7 @@ import {
 } from '../data/siviMiktariTahminData';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 export const TOTAL_ROUNDS = 5;
 
@@ -660,6 +661,9 @@ export const SiviMiktariTahminGame: React.FC<SiviMiktariTahminGameProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-[#091022] text-white flex flex-col select-none overflow-hidden font-sans">
+      {/* ÇOCUKLAR İÇİN BÜYÜLÜ AKVARYUM ARKA PLANI */}
+      <ActivityBackground theme="akvaryum" />
+
       {/* 1. TOP HEADER BANNER */}
       <header className="w-full shrink-0 z-20 px-2 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-slate-950 via-[#0e1b38] to-slate-950 border-b border-cyan-500/30 flex items-center justify-between gap-2 shadow-lg">
         {/* Left: Gezinme & Activity Title & Round */}

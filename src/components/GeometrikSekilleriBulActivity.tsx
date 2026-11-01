@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 import { 
   GeometricSolidType, 
   GEOMETRIC_SOLIDS, 
@@ -603,16 +604,8 @@ export const GeometrikSekilleriBulActivity: React.FC<GeometrikSekilleriBulProps>
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden touch-none bg-slate-950 text-white"
     >
       
-      {/* 1. BACKGROUND IMAGE (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105 blur-[0.5px]"
-        />
-        <div className="absolute inset-0 bg-slate-950/45 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ GEOMETRİK ŞEKİLLER ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
       
       {activePlayerMode !== 1 && (
         <>

@@ -701,18 +701,17 @@ export const SayiBasketiGame: React.FC<SayiBasketiGameProps> = ({
         </div>
       </div>
 
-      {/* ANA OYUN ALANI (REFERANS GÖRSELLE BİREBİR AYNI DÜELLO SAHASI) */}
-      <main className="flex-1 min-h-0 relative flex items-center justify-center overflow-hidden p-0 bg-[#f4ebe1]">
+      {/* ANA OYUN ALANI (DÜELLO BASKETBOL STADYUMU) */}
+      <main className="flex-1 min-h-0 relative flex items-center justify-center overflow-hidden p-0 bg-slate-950">
         <div
           className={`w-full h-full max-w-[1920px] mx-auto grid ${
-            numPlayers === 1 ? 'grid-cols-1 max-w-3xl' : 'grid-cols-2 divide-x-2 divide-black'
+            numPlayers === 1 ? 'grid-cols-1 max-w-4xl' : 'grid-cols-2 divide-x-4 divide-slate-900'
           }`}
         >
           {Array.from({ length: numPlayers }).map((_, pIdx) => {
             const state = playerStates[pIdx];
             const bannerData = banners[pIdx];
             const isLeft = pIdx === 0;
-            const bgImage = numPlayers === 1 ? '/court_left.webp' : (isLeft ? '/court_left.webp' : '/court_right.webp');
 
             return (
               <div
@@ -720,18 +719,86 @@ export const SayiBasketiGame: React.FC<SayiBasketiGameProps> = ({
                 ref={(el) => {
                   courtRefs.current[pIdx] = el;
                 }}
-                style={{
-                  backgroundImage: `url(${bgImage})`,
-                  backgroundSize: '100% 100%',
-                  backgroundPosition: 'center',
-                  backgroundRepeat: 'no-repeat',
-                }}
-                className="relative w-full h-full flex flex-col justify-between overflow-hidden p-2 sm:p-3"
+                className="relative w-full h-full flex flex-col justify-between overflow-hidden p-2 sm:p-3 select-none"
               >
+                {/* A. STADYUM TRİBÜN / DUVAR ÜST ALANI */}
+                <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-[#0b1120] via-[#162038] to-[#1e293b] overflow-hidden pointer-events-none">
+                  {/* Stadyum Spot Işıkları */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[90%] h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-100/20 via-transparent to-transparent" />
+                  <div className="absolute top-0 left-1/4 w-32 h-44 bg-white/10 blur-xl -rotate-12 pointer-events-none" />
+                  <div className="absolute top-0 right-1/4 w-32 h-44 bg-white/10 blur-xl rotate-12 pointer-events-none" />
+                  {/* Tribün / Akustik Izgara Deseni */}
+                  <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]" />
+                  {/* Pota Taşıyıcı Metal Direk (Arkada) */}
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 sm:w-5 h-[24%] bg-gradient-to-r from-slate-600 via-slate-400 to-slate-700 border-x border-slate-900/60 shadow-lg" />
+                  <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-16 sm:w-22 h-3 bg-slate-700 border border-slate-900 rounded-sm" />
+                </div>
+
+                {/* B. SÜPÜRGELİK / SAHA SINIRI */}
+                <div className="absolute inset-x-0 top-[38%] h-2.5 bg-gradient-to-b from-[#2b180a] via-[#160b04] to-[#3a2211] border-y border-amber-950/70 shadow-md z-2 pointer-events-none" />
+
+                {/* C. PARKE BASKETBOL SAHASI ZEMİNİ */}
+                <div
+                  className="absolute inset-x-0 top-[38%] bottom-0 overflow-hidden pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(180deg, #e4933d 0%, #d4802c 25%, #c06e1e 65%, #a65813 100%)',
+                  }}
+                >
+                  {/* Parke Tahta Çizgileri Deseni */}
+                  <div
+                    className="absolute inset-0 opacity-25"
+                    style={{
+                      backgroundImage:
+                        'repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(0,0,0,0.06) 32px, rgba(0,0,0,0.06) 34px), repeating-linear-gradient(0deg, transparent, transparent 16px, rgba(255,255,255,0.04) 16px, rgba(255,255,255,0.04) 18px)',
+                    }}
+                  />
+
+                  {/* Zemin Üzerine Düşen Işık Parıltısı (Cilalı Zemin Efekti) */}
+                  <div className="absolute inset-x-0 top-0 h-48 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
+
+                  {/* BASKETBOL SAHA ÇİZGİLERİ (BOYALI ALAN + SERBEST ATIŞ + 3 SAYI YAYI) */}
+                  <svg
+                    viewBox="0 0 400 400"
+                    preserveAspectRatio="none"
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    {/* Boyalı Alan (Key / Trapezoid) */}
+                    <polygon
+                      points="140,0 260,0 280,260 120,260"
+                      fill={isLeft ? 'rgba(220, 38, 38, 0.28)' : 'rgba(37, 99, 235, 0.28)'}
+                      stroke="rgba(255, 255, 255, 0.75)"
+                      strokeWidth="3.5"
+                    />
+                    {/* Serbest Atış Çemberi */}
+                    <path
+                      d="M 120,260 A 80,60 0 0,0 280,260"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.75)"
+                      strokeWidth="3.5"
+                      strokeDasharray="8,6"
+                    />
+                    <path
+                      d="M 120,260 A 80,60 0 0,1 280,260"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.75)"
+                      strokeWidth="3.5"
+                    />
+                    {/* 3 Sayı Çizgisi Yayı */}
+                    <path
+                      d="M 20,400 C 20,120 380,120 380,400"
+                      fill="none"
+                      stroke="rgba(255, 255, 255, 0.55)"
+                      strokeWidth="3.5"
+                    />
+                  </svg>
+                </div>
+
                 {/* 1. ÜST PANEL: KIRMIZI / MAVİ BAŞLIK VE SKOR ROZETİ */}
                 <div
-                  className={`w-full max-w-[97%] mx-auto px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border-2 sm:border-[2.5px] border-black flex items-center justify-between shadow-xs z-10 ${
-                    isLeft ? 'bg-[#ffefef]' : 'bg-[#edf4ff]'
+                  className={`w-full max-w-[97%] mx-auto px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl border-2 sm:border-[2.5px] flex items-center justify-between shadow-lg z-20 backdrop-blur-md ${
+                    isLeft
+                      ? 'bg-gradient-to-r from-red-600/90 via-rose-600/90 to-red-700/90 border-red-300/80 text-white shadow-red-950/40'
+                      : 'bg-gradient-to-r from-blue-600/90 via-indigo-600/90 to-blue-700/90 border-blue-300/80 text-white shadow-blue-950/40'
                   }`}
                 >
                   {(() => {
@@ -750,34 +817,30 @@ export const SayiBasketiGame: React.FC<SayiBasketiGameProps> = ({
                       >
                         {st ? (
                           <div
-                            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br ${
-                              st.avatarBg || 'from-amber-500 to-yellow-600'
-                            } border-2 border-black flex items-center justify-center text-xs sm:text-sm shadow-xs shrink-0`}
+                            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br ${
+                              st.avatarBg || 'from-amber-400 to-yellow-500'
+                            } border-2 border-white/90 flex items-center justify-center text-xs sm:text-sm shadow-md shrink-0`}
                           >
                             <span>{st.avatar}</span>
                           </div>
                         ) : (
-                          <span className="text-base sm:text-lg">
+                          <div className="w-8 h-8 rounded-full bg-white/20 border border-white/40 flex items-center justify-center text-sm">
                             {isLeft ? '🔴' : '🔵'}
-                          </span>
+                          </div>
                         )}
 
                         <div className="flex flex-col min-w-0">
-                          <span
-                            className={`font-black text-sm sm:text-base md:text-lg tracking-tight truncate max-w-[130px] sm:max-w-xs ${
-                              isLeft ? 'text-[#dc2626]' : 'text-[#2563eb]'
-                            }`}
-                          >
+                          <span className="font-black text-sm sm:text-base md:text-lg tracking-tight truncate max-w-[130px] sm:max-w-xs text-white drop-shadow-xs">
                             {st ? st.name : (isLeft ? '1. Oyuncu (Kırmızı)' : '2. Oyuncu (Mavi)')}
                           </span>
                           {st?.className && (
-                            <span className="text-[10px] text-slate-500 font-bold leading-none">
+                            <span className="text-[10px] text-white/80 font-bold leading-none">
                               {st.className}
                             </span>
                           )}
                         </div>
 
-                        <span className="text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-lg bg-black/10 text-slate-800 group-hover/btn:bg-black/20 transition-colors flex items-center gap-1">
+                        <span className="text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 text-white transition-colors flex items-center gap-1 border border-white/30">
                           {st ? 'Değiştir ✏️' : 'Öğrenci Seç +'}
                         </span>
                       </button>
@@ -785,119 +848,142 @@ export const SayiBasketiGame: React.FC<SayiBasketiGameProps> = ({
                   })()}
 
                   {/* Skor Rozeti */}
-                  <div
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-0.5 rounded-lg sm:rounded-xl border border-black text-white font-black text-xs sm:text-base shadow-xs ${
-                      isLeft ? 'bg-[#e24c38]' : 'bg-[#2d68e8]'
-                    }`}
-                  >
-                    <span className="text-sm">🏀</span>
-                    <span className="tabular-nums font-black">{state.score}</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5 px-3 py-1 rounded-xl bg-amber-400 border border-amber-200 text-slate-950 font-black text-xs sm:text-base shadow-md">
+                    <span className="text-sm sm:text-base">🏀</span>
+                    <span className="tabular-nums font-black text-sm sm:text-lg">{state.score}</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-amber-900 opacity-80">/ {CFG.WIN_SCORE}</span>
                   </div>
                 </div>
 
-                {/* 2. POTA PANYASININ ÜSTÜNDEKİ YAZI (REFERANS GÖRSELLE BİREBİR AYNI) */}
-                <div className="absolute left-1/2 top-[13.5%] -translate-x-1/2 -translate-y-1/2 w-[58%] text-center pointer-events-none select-none z-10">
-                  <span className="font-black text-[#1e293b] text-xl sm:text-2xl md:text-3xl lg:text-4xl tracking-tight block drop-shadow-xs lowercase">
-                    {state.word}
-                  </span>
+                {/* 2. POTA VE CAM PANYA (TAM 50% X, 25% Y RİM HİZALAMASI) */}
+                <div className="absolute left-1/2 top-[25%] -translate-x-1/2 -translate-y-1/2 pointer-events-none select-none z-15 flex flex-col items-center">
+                  {/* Cam Panya */}
+                  <div className="relative w-[230px] sm:w-[310px] md:w-[360px] h-[120px] sm:h-[150px] md:h-[170px] -mb-[16px] sm:-mb-[22px] rounded-2xl bg-white/95 backdrop-blur-md border-4 sm:border-[5px] border-slate-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex flex-col items-center justify-between p-2 sm:p-2.5 overflow-hidden">
+                    {/* Panya Kırmızı Dış Şeridi */}
+                    <div className="absolute inset-1.5 sm:inset-2 border-2 border-rose-500/80 rounded-xl pointer-events-none" />
+
+                    {/* Soru Metni: Sayının Okunuşu */}
+                    <div className="relative z-10 w-full text-center mt-0.5 sm:mt-1">
+                      <span className="font-black text-slate-950 text-xl sm:text-2xl md:text-3xl tracking-tight block uppercase drop-shadow-xs">
+                        {state.word}
+                      </span>
+                    </div>
+
+                    {/* Kırmızı İç Hedef Kutusu */}
+                    <div className="relative z-10 w-24 sm:w-32 h-12 sm:h-16 border-[3px] border-rose-600 rounded-sm bg-rose-50/50 mb-0.5 sm:mb-1 flex items-center justify-center">
+                      <span className="text-[10px] sm:text-xs font-black text-rose-600/70 tracking-widest uppercase">
+                        BASKET
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pota Çemberi (Turuncu Metalik Rim) ve File */}
+                  <div className="relative flex flex-col items-center z-20">
+                    {/* Çember Bağlantı Desteği */}
+                    <div className="w-6 sm:w-8 h-2 bg-gradient-to-r from-orange-800 to-amber-700 rounded-xs" />
+
+                    {/* Turuncu Metalik Çember Ring */}
+                    <div className="w-20 sm:w-26 md:w-28 h-6 sm:h-7 md:h-8 rounded-full border-[5px] sm:border-[6px] border-[#ea580c] bg-radial from-amber-500/20 to-orange-700/60 shadow-[0_4px_12px_rgba(0,0,0,0.6)] flex items-center justify-center" />
+
+                    {/* Beyaz Örgü File (SVG) */}
+                    <svg
+                      viewBox="0 0 100 80"
+                      className="w-16 sm:w-22 md:w-24 h-14 sm:h-18 -mt-2 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] stroke-white stroke-[2.5] fill-none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M 12,0 L 25,25 L 18,50 L 30,78" />
+                      <path d="M 28,0 L 40,25 L 32,50 L 42,78" />
+                      <path d="M 44,0 L 52,25 L 48,50 L 50,78" />
+                      <path d="M 60,0 L 58,25 L 64,50 L 58,78" />
+                      <path d="M 76,0 L 70,25 L 80,50 L 68,78" />
+                      <path d="M 88,0 L 78,25 L 85,50 L 72,78" />
+                      <path d="M 15,25 Q 50,30 85,25" strokeWidth="2" strokeDasharray="3,1" />
+                      <path d="M 18,50 Q 50,55 82,50" strokeWidth="2" strokeDasharray="3,1" />
+                      <path d="M 28,78 Q 50,82 72,78" strokeWidth="2.5" />
+                    </svg>
+                  </div>
                 </div>
 
                 {/* 3. BİLDİRİM BANNERI (SAYI / HATA) */}
                 {bannerData.text && (
                   <div
-                    className={`absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 z-25 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full font-black text-xs sm:text-base shadow-2xl transition-all duration-200 animate-bounce pointer-events-none whitespace-nowrap border-2 ${
+                    className={`absolute left-1/2 top-[44%] -translate-x-1/2 -translate-y-1/2 z-25 px-5 sm:px-7 py-2 sm:py-2.5 rounded-full font-black text-sm sm:text-lg shadow-2xl transition-all duration-200 animate-bounce pointer-events-none whitespace-nowrap border-2 ${
                       bannerData.tone === 'good'
-                        ? 'bg-emerald-500 text-white border-emerald-300'
-                        : 'bg-rose-600 text-white border-rose-300'
+                        ? 'bg-emerald-500 text-white border-emerald-300 shadow-emerald-500/50'
+                        : 'bg-rose-600 text-white border-rose-300 shadow-rose-600/50'
                     }`}
                   >
                     {bannerData.text}
                   </div>
                 )}
 
-                {/* 4. ALT KART: 4 SEÇENEK BUTONU + OKLAR VE BASKETBOL TOPU LAUNCHER */}
-                <div className="w-full max-w-[98%] mx-auto z-10 mb-0.5 sm:mb-1">
-                  <div
-                    className={`w-full rounded-2xl sm:rounded-3xl border-2 sm:border-[3px] p-2 sm:p-3 shadow-xl backdrop-blur-xs flex flex-col justify-between ${
-                      isLeft ? 'border-[#ef4444] bg-[#fff5f5]' : 'border-[#3b82f6] bg-[#f0f7ff]'
-                    }`}
-                  >
-                    {/* 4 Seçenek Butonu */}
-                    <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 w-full">
-                      {state.options.map((optVal, optIdx) => {
-                        const isSelected = state.selectedOptIdx === optIdx;
-                        return (
-                          <button
-                            key={optIdx}
-                            type="button"
-                            disabled={locked[pIdx]}
-                            onClick={() => handleShootOption(pIdx, optVal, optIdx)}
-                            className={`w-full py-2 sm:py-3.5 rounded-xl sm:rounded-2xl border-2 sm:border-[3px] border-black bg-[#fffdf8] font-black text-xl sm:text-2xl md:text-3xl text-slate-950 shadow-[0_3px_0_#000] active:translate-y-0.5 active:shadow-[0_1px_0_#000] hover:scale-[1.03] transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
-                              isSelected ? 'ring-4 ring-amber-400 bg-amber-50' : ''
-                            }`}
-                          >
-                            {optVal}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Alt Top Fırlatıcı: Sol Ok, Basketbol Topu (%70 Büyütülmüş), Sağ Ok */}
-                    <div className="flex items-center justify-center gap-4 sm:gap-7 mt-2 sm:mt-3">
-                      {/* Sol Ok */}
-                      <button
-                        type="button"
-                        disabled={locked[pIdx]}
-                        onClick={() => handleNavigateOptions(pIdx, -1)}
-                        title="Önceki Seçenek"
-                        className="p-1.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer disabled:opacity-40"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="w-8 h-8 sm:w-11 sm:h-11 fill-white stroke-black stroke-[3]"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
+                {/* 4. ALT ALAN: SEÇENEK BUTONLARI + OKLAR VE BASKETBOL TOPU LAUNCHER (BEYAZ ÇERÇEVE KALDIRILDI) */}
+                <div className="w-full max-w-xl mx-auto z-20 flex flex-col items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                  {/* 4 Seçenek Butonu: Doğrudan Parke Sahada Yüzen 3D Düğmeler */}
+                  <div className="grid grid-cols-4 gap-2 sm:gap-3.5 w-full px-2 sm:px-3">
+                    {state.options.map((optVal, optIdx) => {
+                      const isSelected = state.selectedOptIdx === optIdx;
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          disabled={locked[pIdx]}
+                          onClick={() => handleShootOption(pIdx, optVal, optIdx)}
+                          className={`group relative w-full py-2 sm:py-3 md:py-4 rounded-2xl sm:rounded-3xl font-black text-2xl sm:text-3xl md:text-4xl transition-all cursor-pointer flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed select-none ${
+                            isSelected
+                              ? 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-500 border-2 sm:border-[3px] border-amber-950 text-slate-950 scale-105 shadow-[0_6px_0_#78350f,0_0_25px_rgba(251,191,36,0.7)] ring-4 ring-amber-300'
+                              : 'bg-gradient-to-b from-white via-slate-50 to-slate-200 border-2 sm:border-[3px] border-slate-900/90 text-slate-950 shadow-[0_5px_0_#0f172a,0_8px_16px_rgba(0,0,0,0.35)] hover:-translate-y-1 hover:shadow-[0_7px_0_#0f172a,0_12px_20px_rgba(0,0,0,0.4)] active:translate-y-1 active:shadow-[0_1px_0_#0f172a]'
+                          }`}
                         >
-                          <polygon points="18,4 6,12 18,20" />
-                        </svg>
-                      </button>
+                          <span>{optVal}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                      {/* Basketbol Topu Fırlatma Butonu (%70 Daha Büyük) */}
-                      <button
-                        type="button"
-                        ref={(el) => {
-                          launcherRefs.current[pIdx] = el;
-                        }}
-                        disabled={locked[pIdx]}
-                        onClick={() => handleShootSelected(pIdx)}
-                        title="Potaya Basket At!"
-                        className="group relative w-[82px] h-[82px] sm:w-[110px] sm:h-[110px] md:w-[136px] md:h-[136px] rounded-full p-1.5 sm:p-2 bg-white/95 border-2 sm:border-[4px] border-white shadow-[0_6px_20px_rgba(0,0,0,0.4)] hover:scale-108 active:scale-95 transition-all cursor-pointer flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
-                      >
-                        <img
-                          src="/basketbol_topu_watercolor.webp"
-                          alt="Basketbol Topu"
-                          className="w-full h-full object-contain group-hover:rotate-12 transition-transform select-none pointer-events-none drop-shadow-md"
-                        />
-                      </button>
+                  {/* Alt Top Fırlatıcı: Sol Ok, Basketbol Topu, Sağ Ok (Beyaz Kutu Olmadan Doğrudan Sahada) */}
+                  <div className="flex items-center justify-center gap-5 sm:gap-8 mt-1">
+                    {/* Sol Ok */}
+                    <button
+                      type="button"
+                      disabled={locked[pIdx]}
+                      onClick={() => handleNavigateOptions(pIdx, -1)}
+                      title="Önceki Seçenek"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900/85 hover:bg-slate-950 border-2 border-white/70 text-white shadow-[0_6px_14px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all hover:scale-110 active:scale-90 cursor-pointer disabled:opacity-40"
+                    >
+                      <ArrowLeft size={22} className="stroke-[3]" />
+                    </button>
 
-                      {/* Sağ Ok */}
-                      <button
-                        type="button"
-                        disabled={locked[pIdx]}
-                        onClick={() => handleNavigateOptions(pIdx, 1)}
-                        title="Sonraki Seçenek"
-                        className="p-1.5 hover:scale-125 active:scale-90 transition-transform cursor-pointer disabled:opacity-40"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          className="w-8 h-8 sm:w-11 sm:h-11 fill-white stroke-black stroke-[3]"
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        >
-                          <polygon points="6,4 18,12 6,20" />
-                        </svg>
-                      </button>
-                    </div>
+                    {/* Basketbol Topu Fırlatma Butonu */}
+                    <button
+                      type="button"
+                      ref={(el) => {
+                        launcherRefs.current[pIdx] = el;
+                      }}
+                      disabled={locked[pIdx]}
+                      onClick={() => handleShootSelected(pIdx)}
+                      title="Potaya Basket At!"
+                      className="group relative w-[80px] h-[80px] sm:w-[104px] sm:h-[104px] md:w-[124px] md:h-[124px] rounded-full p-2 bg-gradient-to-b from-amber-400/25 to-amber-600/20 border-2 sm:border-[3px] border-amber-400/80 shadow-[0_12px_24px_rgba(0,0,0,0.6)] hover:scale-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed shrink-0 backdrop-blur-xs"
+                    >
+                      <div className="absolute inset-0 rounded-full bg-amber-400/15 animate-ping opacity-40 pointer-events-none" />
+                      <img
+                        src="/basketbol_topu_watercolor.webp"
+                        alt="Basketbol Topu"
+                        className="w-full h-full object-contain group-hover:rotate-12 transition-transform select-none pointer-events-none drop-shadow-[0_8px_14px_rgba(0,0,0,0.6)]"
+                      />
+                    </button>
+
+                    {/* Sağ Ok */}
+                    <button
+                      type="button"
+                      disabled={locked[pIdx]}
+                      onClick={() => handleNavigateOptions(pIdx, 1)}
+                      title="Sonraki Seçenek"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900/85 hover:bg-slate-950 border-2 border-white/70 text-white shadow-[0_6px_14px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all hover:scale-110 active:scale-90 cursor-pointer disabled:opacity-40"
+                    >
+                      <ArrowRight size={22} className="stroke-[3]" />
+                    </button>
                   </div>
                 </div>
               </div>

@@ -56,6 +56,7 @@ const videoUploadPlugin = (): Plugin => ({
 
 export default defineConfig(() => {
   return {
+    base: './',
     plugins: [react(), tailwindcss(), webpFallbackPlugin(), videoUploadPlugin()],
     resolve: {
       alias: {

@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { RotateCcw, CheckCircle2, Eraser, X, Search, UserPlus, Check } from 'lucide-react';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 interface OnlukBirlikGameProps {
   onClose: () => void;
@@ -345,6 +346,8 @@ export const OnlukBirlikGame: React.FC<OnlukBirlikGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden bg-slate-900 text-white"
     >
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ MATEMATİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
       <style>{`
         @keyframes ob-shake {
           0%, 100% { transform: translateX(0); }
