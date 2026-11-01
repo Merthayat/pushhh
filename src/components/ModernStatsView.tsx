@@ -805,13 +805,18 @@ export const ModernStatsView: React.FC<ModernStatsViewProps> = ({
               }}
               className={`px-2.5 py-1 rounded-md font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'ogrenciler'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow ring-1 ring-purple-300'
-                  : 'text-purple-200/70 hover:text-white'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow ring-2 ring-purple-300 scale-105'
+                  : 'text-purple-200/90 hover:text-white bg-purple-900/30 border border-purple-400/30 hover:bg-purple-800/40'
               }`}
-              title={`${currentGrade}. Sınıf Öğrencilerinin Konu Konu İstatistiklerini Gör`}
+              title={`${currentGrade}. Sınıf Öğrencilerinin Soru Çözümlerini ve Başarı Karnelerini Gör`}
             >
               <Award size={13} className="text-amber-300 shrink-0" />
               <span>🎓 {currentGrade}. Sınıf Öğrencileri ({gradeStudents.length})</span>
+              {studentTotalQuestions > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black text-[9px] shadow-sm ml-0.5 animate-pulse">
+                  {studentTotalQuestions} Soru
+                </span>
+              )}
             </button>
 
             {localStudents.length > 0 && (
@@ -862,23 +867,36 @@ export const ModernStatsView: React.FC<ModernStatsViewProps> = ({
                 onClick={onOpenCloudSync}
                 className={`px-2 py-1 rounded-md font-bold text-[10px] sm:text-[11px] flex items-center gap-1 border transition cursor-pointer ${
                   currentUser
-                    ? 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-500/40'
+                    ? 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
                     : 'bg-blue-950/80 hover:bg-blue-900 text-blue-300 border-blue-500/40'
                 }`}
                 title="Google ile Bulut Senkronizasyonu & Yedekleme"
               >
                 <Cloud size={12} className={currentUser ? "text-emerald-400" : "text-cyan-400"} />
                 <span className="hidden sm:inline">
-                  {currentUser ? 'Buluta Bağlı' : 'Buluta Yedekle'}
+                  {currentUser ? `Bulut: ${currentUser.email?.split('@')[0] || 'Bağlı'}` : 'Google ile Giriş Yap'}
                 </span>
                 {currentUser && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
               </button>
             )}
           </div>
 
-          <div className="text-[10px] sm:text-[11px] font-bold text-amber-300/90 flex items-center gap-1">
-            <Sparkles size={11} className="text-amber-300 shrink-0" />
-            <span className="hidden sm:inline">Bağımsız sınıf kaydı</span>
+          <div className="text-[10px] sm:text-[11px] font-bold flex items-center gap-1.5">
+            {currentUser ? (
+              <span className="text-emerald-300/90 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="hidden sm:inline">{currentUser.email}</span>
+              </span>
+            ) : (
+              <button
+                onClick={onOpenCloudSync}
+                className="text-amber-300 hover:text-amber-200 underline decoration-amber-400/50 flex items-center gap-1 cursor-pointer transition"
+                title="Buluttaki kayıtlarınıza erişmek için Google ile giriş yapın"
+              >
+                <Sparkles size={11} className="text-amber-300 shrink-0" />
+                <span>Giriş Yapılmadı (Misafir Modu)</span>
+              </button>
+            )}
           </div>
         </div>
 
