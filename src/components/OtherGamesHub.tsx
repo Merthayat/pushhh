@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, ArrowLeft, Swords, BookOpen, Brain, Play, Star, Flame, Trophy, Home } from 'lucide-react';
 import { getIconAccentColor } from '../App';
+import { ActivityBackground } from './ActivityBackground';
 
 interface OtherGamesHubProps {
   onClose: () => void;
@@ -402,16 +403,8 @@ export const OtherGamesHub: React.FC<OtherGamesHubProps> = ({
 
   return (
     <div className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden bg-slate-900 text-white">
-      {/* 1. SAME BACKGROUND IMAGE AS OTHER CLASSROOM ACTIVITIES (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105 blur-[0.5px]"
-        />
-        <div className="absolute inset-0 bg-slate-950/30 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ DİĞER OYUNLAR MERKEZİ ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* 2. GAMES CONTAINER */}
       <main className="relative z-10 flex-1 p-2 sm:p-4 max-w-4xl mx-auto w-full overflow-y-auto no-scrollbar flex flex-col items-center gap-2 sm:gap-2.5 pt-3 sm:pt-4 md:pt-5">

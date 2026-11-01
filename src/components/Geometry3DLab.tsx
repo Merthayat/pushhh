@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RotateCcw, Eye, Sparkles, Box, Info, Play, CheckCircle2, RefreshCw, Layers } from 'lucide-react';
+import { ActivityBackground } from './ActivityBackground';
 
 interface Shape3D {
   id: string;
@@ -299,16 +300,8 @@ export const Geometry3DLab: React.FC<Geometry3DLabProps> = ({ onClose, onPrevAct
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-0 top-[52px] xs:top-[60px] sm:top-[74px] md:top-[80px] bg-slate-950/95 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
     >
-      {/* Background Image /dere3.webp */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105 blur-[1px]"
-        />
-        <div className="absolute inset-0 bg-slate-950/70 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ 3D GEOMETRİ ATÖLYESİ ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 border-3 border-amber-400/80 rounded-3xl max-w-4xl w-full p-2.5 sm:p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] text-white flex flex-col max-h-[calc(100vh-90px)] sm:max-h-[calc(100vh-100px)] overflow-hidden relative z-10">
         

@@ -3,6 +3,7 @@ import { Trophy, RotateCcw, X, Clock, SkipBack, SkipForward, CheckCircle2, Spark
 import confetti from 'canvas-confetti';
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
+import { ActivityBackground } from './ActivityBackground';
 
 interface OnuBulGameProps {
   onClose: () => void;
@@ -385,6 +386,8 @@ export const OnuBulGame: React.FC<OnuBulGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden touch-none bg-slate-950"
     >
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
       {/* 1. ÜST ORTA: BEYAZ HAP SKOR VE 60 SANİYE GERİ SAYIM SAYACI */}
       <div className="absolute top-2 sm:top-3.5 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-auto">
         <div className="bg-white/95 backdrop-blur-md px-4 sm:px-6 py-1 sm:py-1.5 rounded-full shadow-[0_4px_16px_rgba(0,0,0,0.35)] border-2 border-slate-900 flex items-center gap-3 sm:gap-5 text-slate-900">

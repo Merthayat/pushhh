@@ -59,6 +59,7 @@ import { MarketKasasiGame } from './components/MarketKasasiGame';
 import { KesirDuvariPizzaGame } from './components/KesirDuvariPizzaGame';
 import { EsSesliKelimelerGame } from './components/EsSesliKelimelerGame';
 import { DengeTerazisiGame } from './components/DengeTerazisiGame';
+import { ActivityBackground } from './components/ActivityBackground';
 import { RandomStudentWheelModal } from './components/RandomStudentWheelModal';
 import { EnglishGamesHub } from './components/EnglishGamesHub';
 import { WordGameModal } from './components/WordGameModal';
@@ -4420,20 +4421,22 @@ export default function App() {
     }
   };
 
-  const selectTopicAndStart = (topicKey: string, gradeOverride?: 1 | 2 | 3 | 4) => {
+  const selectTopicAndStart = (topicKey: string, gradeOverride?: 1 | 2 | 3 | 4, skipIndexUpdate?: boolean) => {
     playMp3('/op.mp3');
     if (gradeOverride !== undefined) {
       setSelectedGrade(gradeOverride);
       setLastSelectedGrade(gradeOverride);
     }
     const effectiveGrade = gradeOverride !== undefined ? gradeOverride : (selectedGrade || 1);
-    const foundActivityIdx = findActivityIndex(
-      topicKey === 'geometri_tahtasi' ? 'geoboard' : topicKey === 'cisimler_acilimi' ? 'geometric_nets' : topicKey === 'onluk_birlik' ? 'onluk_birlik' : topicKey === 'sayi_basketi' ? 'sayi_basketi' : 'grade_topic',
-      topicKey,
-      effectiveGrade
-    );
-    if (foundActivityIdx !== -1) {
-      setCurrentActivityIndex(foundActivityIdx);
+    if (!skipIndexUpdate) {
+      const foundActivityIdx = findActivityIndex(
+        topicKey === 'geometri_tahtasi' ? 'geoboard' : topicKey === 'cisimler_acilimi' ? 'geometric_nets' : topicKey === 'onluk_birlik' ? 'onluk_birlik' : topicKey === 'sayi_basketi' ? 'sayi_basketi' : 'grade_topic',
+        topicKey,
+        effectiveGrade
+      );
+      if (foundActivityIdx !== -1) {
+        setCurrentActivityIndex(foundActivityIdx);
+      }
     }
     if (topicKey !== currentTopic) {
       playFarkliLvlSound();
@@ -4799,7 +4802,7 @@ export default function App() {
         setLastSelectedGrade(entry.grade);
         setSelectedCategoryId(getCategoryIdForTopic(entry.topicKey));
       }
-      selectTopicAndStart(entry.topicKey, entry.grade);
+      selectTopicAndStart(entry.topicKey, entry.grade, true);
     } else if (entry.type === 'geometric_nets' || entry.topicKey === 'cisimler_acilimi') {
       if (entry.grade) {
         setSelectedGrade(entry.grade);
@@ -5145,7 +5148,7 @@ export default function App() {
    * güncel indeks numarasını anında ve hatasız tespit eder.
    */
   const getCurrentLiveActivityIndex = (): number => {
-    // 0. Öncelikli Hızlı Doğrulama: Mevcut kayıtlı indeks zaten aktif etkinlikle birebir uyuşuyorsa
+    // 0. Öncelikli Hızlı Doğrulama: Mevcut kayıtlı indeks zaten aktif etkinlikle uyuşuyorsa
     if (currentActivityIndex >= 0 && currentActivityIndex < ALL_ACTIVITIES_LIST.length) {
       const cur = ALL_ACTIVITIES_LIST[currentActivityIndex];
       if (cur) {
@@ -5155,10 +5158,10 @@ export default function App() {
         if (showKelimeSirala && (cur.type === 'kelime_sirala' || cur.id.includes('kelime_sirala')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showHeceMakasi && (cur.type === 'hece_makasi' || cur.id.includes('hece_makasi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showYazimDedektifi && (cur.type === 'yazim_dedektifi' || cur.id.includes('yazim_dedektifi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showOnlukBirlik && cur.type === 'onluk_birlik') return currentActivityIndex;
-        if (showSayiBasketi && (cur.type === 'sayi_basketi' || cur.topicKey === 'sayi_basketi')) return currentActivityIndex;
+        if (showOnlukBirlik && (cur.type === 'onluk_birlik' || cur.topicKey === 'onluk_birlik' || cur.id.includes('onluk_birlik'))) return currentActivityIndex;
+        if (showSayiBasketi && (cur.type === 'sayi_basketi' || cur.topicKey === 'sayi_basketi' || cur.id.includes('sayi_basketi'))) return currentActivityIndex;
         if (showDedektif5N1K && (cur.type === 'dedektif_5n1k' || cur.id.includes('dedektif_5n1k')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showLessonVideo && cur.type === 'lesson_video') return currentActivityIndex;
+        if (showLessonVideo && (cur.type === 'lesson_video' || cur.id.includes('video'))) return currentActivityIndex;
         if (showSatirSonuHece && (cur.type === 'satir_sonu_hece' || cur.id.includes('satir_sonu_hece')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showNoktalamaAvcisi && (cur.type === 'noktalama_avcisi' || cur.id.includes('noktalama_avcisi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showHarfCorbasi && (cur.type === 'harf_corbasi' || cur.id.includes('harf_corbasi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
@@ -5169,330 +5172,181 @@ export default function App() {
         if (showAblukaGame && (cur.type === 'abluka' || cur.id.includes('abluka')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showSudokuGame && (cur.type === 'sudoku' || cur.id.includes('sudoku')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showGorselliSudoku && (cur.type === 'gorselli_sudoku' || cur.id.includes('gorselli_sudoku')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showSiviTahminAkvaryum && (cur.type === 'sivi_tahmin_akvaryum' || cur.id.includes('sivi_tahmin_akvaryum')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showSchoolLifeGame && (cur.type === 'school_life' || cur.id === 'english_school_life')) return currentActivityIndex;
+        if (showSiviTahminAkvaryum && (cur.type === 'sivi_tahmin_akvaryum' || cur.topicKey === 'sivi_tahmin_akvaryum' || cur.id.includes('sivi_tahmin_akvaryum')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showSiviOlcmeVideoModal && (cur.type === 'sivi_olcme_video' || cur.topicKey === 'standart_olmayan_sivi_olcme_video' || cur.id.includes('standart_olmayan_sivi_olcme_video'))) return currentActivityIndex;
         if (showXOXGame && (cur.type === 'xox' || cur.id.includes('xox')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showAynisiniBul && cur.type === 'aynisini_bul' && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showOnuBul && cur.type === 'onu_bul' && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showYirmiyiBul && cur.type === 'yirmiyi_bul' && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (showGeometrikSekilleriBul && cur.type === 'geometrik_sekilleri_bul' && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showGeoboard && (cur.type === 'geoboard' || cur.topicKey === 'geometri_tahtasi') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showGeometricNets && (cur.type === 'geometric_nets' || cur.topicKey === 'cisimler_acilimi') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (show3DLab && cur.type === '3d_lab' && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showSaatZaman && (cur.type === 'saat_zaman' || cur.id.includes('saat_zaman')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showMarketKasasi && (cur.type === 'market_kasasi' || cur.id.includes('market_kasasi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showKesirDuvariPizza && (cur.type === 'kesir_duvari_pizza' || cur.id.includes('kesir_duvari_pizza')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showEsSesli && (cur.type === 'es_sesli' || cur.id.includes('es_sesli')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (showDengeTerazisi && (cur.type === 'denge_terazisi' || cur.id.includes('denge_terazisi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showGeoboard && (cur.type === 'geoboard' || cur.topicKey === 'geometri_tahtasi' || cur.id.includes('geometri_tahtasi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showGeometricNets && (cur.type === 'geometric_nets' || cur.topicKey === 'cisimler_acilimi' || cur.id.includes('cisimler_acilimi')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (show3DLab && (cur.type === '3d_lab' || cur.id.includes('3d_lab') || cur.id.includes('3dlab')) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showSaatZaman && (cur.type === 'saat_zaman' || cur.id.includes('saat') || cur.id.includes('zaman') || cur.topicKey === 'saat_zaman' || cur.topicKey === 'zaman_olcme' || cur.topicKey?.startsWith('saat_') || cur.topicKey === 'g3_zaman_olcme') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showMarketKasasi && (cur.type === 'market_kasasi' || cur.id.includes('market_kasasi') || cur.id.includes('paralarimiz') || cur.topicKey === 'market_kasasi' || cur.topicKey === 'paralarimiz' || cur.topicKey === 'g3_paralarimiz_lira_kurus') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showKesirDuvariPizza && (cur.type === 'kesir_duvari_pizza' || cur.id.includes('kesir_duvari_pizza') || cur.id.includes('kesirler') || cur.id.includes('kesir') || cur.topicKey === 'kesirler' || cur.topicKey === 'kesir_duvari_pizza' || cur.topicKey === 'g3_birim_kesirler' || cur.topicKey === 'g4_birim_kesirler_karsilastirma') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showEsSesli && (cur.type === 'es_sesli' || cur.id.includes('es_sesli') || cur.topicKey === 'turkce_es_sesli' || cur.topicKey === 'es_sesli') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (showDengeTerazisi && (cur.type === 'denge_terazisi' || cur.id.includes('denge_terazisi') || cur.id.includes('tartma') || cur.topicKey === 'tartma_olcme' || cur.topicKey === 'denge_terazisi' || cur.topicKey === 'g3_tartma_gram_kilogram' || cur.topicKey === 'g4_tartma_ton_miligram') && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
         if (wordGameType && cur.type === 'word_game' && cur.wordGameType === wordGameType && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
-        if (currentTopic && (gameState === 'playing' || gameState === 'gameover') && (cur.topicKey === currentTopic || cur.id.includes(currentTopic)) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (currentTopic && (gameState === 'playing' || gameState === 'gameover') && (cur.topicKey === currentTopic || cur.id === `g${selectedGrade}_${currentTopic}` || cur.id === currentTopic || cur.id.includes(currentTopic)) && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
+        if (isInsideAnyGame && (!cur.grade || cur.grade === selectedGrade)) return currentActivityIndex;
       }
     }
 
-    // 1. Özel modal aktiviteleri
-    if (showSchoolLifeGame) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'english_school_life' || a.type === 'school_life');
-      if (idx !== -1) return idx;
-    }
-    if (wordGameType === 'ingilizce') {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_ingilizce');
-      if (idx !== -1) return idx;
-    }
-    if (wordGameType === 'zit_anlam') {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'word_game' && a.wordGameType === 'zit_anlam' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_zit_anlam' || (a.type === 'word_game' && a.wordGameType === 'zit_anlam'));
-      if (idx !== -1) return idx;
-    }
-    if (wordGameType === 'es_anlam') {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'word_game' && a.wordGameType === 'es_anlam' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_es_anlam' || (a.type === 'word_game' && a.wordGameType === 'es_anlam'));
-      if (idx !== -1) return idx;
-    }
-    if (showKuralliCumle) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kuralli_cumle' || a.id.includes('kuralli_cumle')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_kuralli_cumle' || a.type === 'kuralli_cumle');
-      if (idx !== -1) return idx;
-    }
-    if (showHeceSayisi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'hece_sayisi' || a.id.includes('hece_sayisi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'hece_sayisi');
-      if (idx !== -1) return idx;
-    }
-    if (showSozlukSirala) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sozluk_sirala' || a.id.includes('sozluk_sirala')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_sozluk_sirala' || a.type === 'sozluk_sirala');
-      if (idx !== -1) return idx;
-    }
-    if (showKelimeSirala) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kelime_sirala' || a.id.includes('kelime_sirala')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_kelime_sirala' || a.type === 'kelime_sirala');
-      if (idx !== -1) return idx;
-    }
-    if (showHeceMakasi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'hece_makasi' || a.id.includes('hece_makasi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_hece_makasi' || a.type === 'hece_makasi');
-      if (idx !== -1) return idx;
-    }
-    if (showYazimDedektifi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'yazim_dedektifi' || a.id.includes('yazim_dedektifi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_yazim_dedektifi' || a.type === 'yazim_dedektifi');
-      if (idx !== -1) return idx;
-    }
-    if (showOnlukBirlik) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'onluk_birlik');
-      if (idx !== -1) return idx;
-    }
-    if (showSayiBasketi) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'sayi_basketi' || a.id.includes('sayi_basketi') || a.topicKey === 'sayi_basketi');
-      if (idx !== -1) return idx;
-    }
-    if (showDedektif5N1K) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'dedektif_5n1k' || a.id.includes('dedektif_5n1k')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_dedektif_5n1k' || a.type === 'dedektif_5n1k');
-      if (idx !== -1) return idx;
-    }
-    if (showLessonVideo) {
-      const cur = ALL_ACTIVITIES_LIST[currentActivityIndex];
-      if (cur && cur.type === 'lesson_video') return currentActivityIndex;
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'lesson_video' && (a.id === 'g2_turkce_saglikli_aliskanliklar_video' || a.id === 'g2_turkce_karar_alma_video'));
-      if (idx !== -1) return idx;
-      const anyIdx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'lesson_video' && (!selectedGrade || a.grade === selectedGrade));
-      if (anyIdx !== -1) return anyIdx;
-    }
-    if (showSatirSonuHece) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'satir_sonu_hece' || a.id.includes('satir_sonu_hece')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_satir_sonu_hece' || a.type === 'satir_sonu_hece');
-      if (idx !== -1) return idx;
-    }
-    if (showNoktalamaAvcisi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'noktalama_avcisi' || a.id.includes('noktalama_avcisi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_noktalama_avcisi' || a.type === 'noktalama_avcisi');
-      if (idx !== -1) return idx;
-    }
-    if (showHarfCorbasi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'harf_corbasi' || a.id.includes('harf_corbasi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_harf_corbasi' || a.type === 'harf_corbasi');
-      if (idx !== -1) return idx;
-    }
-    if (showGeriDonusum) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geri_donusum' || a.id.includes('geri_donusum')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_geri_donusum' || a.type === 'geri_donusum');
-      if (idx !== -1) return idx;
-    }
-    if (showSaglikliTabak) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'saglikli_tabak' || a.id.includes('saglikli_tabak')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_saglikli_tabak' || a.type === 'saglikli_tabak');
-      if (idx !== -1) return idx;
-    }
-    if (showIstekIhtiyac) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'istek_ihtiyac' || a.id.includes('istek_ihtiyac')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_istek_ihtiyac' || a.type === 'istek_ihtiyac');
-      if (idx !== -1) return idx;
-    }
-    if (showMevsimGardirobu) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'mevsim_gardirobu' || a.id.includes('mevsim_gardirobu')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_mevsim_gardirobu' || a.type === 'mevsim_gardirobu');
-      if (idx !== -1) return idx;
-    }
-    if (showAblukaGame) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'abluka' || a.id.includes('abluka')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_abluka' || a.type === 'abluka');
-      if (idx !== -1) return idx;
-    }
-    if (showSudokuGame) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sudoku' || a.id.includes('sudoku')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_sudoku' || a.type === 'sudoku');
-      if (idx !== -1) return idx;
-    }
-    if (showGorselliSudoku) {
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_gorselli_sudoku' || a.type === 'gorselli_sudoku');
-      if (idx !== -1) return idx;
-    }
-    if (showSiviOlcmeVideoModal) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sivi_olcme_video' || a.id.includes('standart_olmayan_sivi_olcme_video')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'g2_standart_olmayan_sivi_olcme_video' || a.type === 'sivi_olcme_video');
-      if (idx !== -1) return idx;
-    }
-    if (showSiviTahminAkvaryum) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'sivi_tahmin_akvaryum' || a.id.includes('sivi_tahmin_akvaryum')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'g2_sivi_tahmin_akvaryum' || a.type === 'sivi_tahmin_akvaryum');
-      if (idx !== -1) return idx;
-    }
-    if (showXOXGame) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'xox' || a.id.includes('xox')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_xox' || a.type === 'xox');
-      if (idx !== -1) return idx;
-    }
-    if (showOnuBul) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'onu_bul' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_onu_bul' || a.type === 'onu_bul');
-      if (idx !== -1) return idx;
-    }
-    if (showYirmiyiBul) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'yirmiyi_bul' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_yirmiyi_bul' || a.type === 'yirmiyi_bul');
-      if (idx !== -1) return idx;
-    }
-    if (showAynisiniBul) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'aynisini_bul' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_aynisini_bul' || a.type === 'aynisini_bul');
-      if (idx !== -1) return idx;
-    }
-    if (showGeometrikSekilleriBul) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.type === 'geometrik_sekilleri_bul' && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_geometrik_sekilleri_bul' || a.type === 'geometrik_sekilleri_bul');
-      if (idx !== -1) return idx;
-    }
-    if (showGeometricNets) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geometric_nets' || a.topicKey === 'cisimler_acilimi') && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_cisimler_acilimi' || a.type === 'geometric_nets');
-      if (idx !== -1) return idx;
-    }
-    if (showGeoboard) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'geoboard' || a.topicKey === 'geometri_tahtasi') && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_geoboard' || a.type === 'geoboard');
-      if (idx !== -1) return idx;
-    }
-    if (show3DLab) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === '3d_lab' || a.id.includes('3dlab') || a.id.includes('3d_lab')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_3d_lab' || a.type === '3d_lab');
+    // 1. Fallback arama (menüden doğrudan açıldığında kesin eşleşme)
+    const isOther = openedFromOtherGamesModal || selectedGrade === null;
+    if (showSchoolLifeGame) return ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'english_school_life');
+    if (wordGameType === 'ingilizce') return ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_ingilizce');
+    if (wordGameType) {
+      const idx = findActivityIndex('word_game', undefined, selectedGrade, wordGameType, isOther);
       if (idx !== -1) return idx;
     }
     if (showSaatZaman) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'saat_zaman' || a.id.includes('saat_zaman')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_saat_zaman' || a.type === 'saat_zaman');
+      const idx = findActivityIndex('saat_zaman', currentTopic || 'saat_zaman', selectedGrade, null, isOther);
       if (idx !== -1) return idx;
     }
     if (showMarketKasasi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'market_kasasi' || a.id.includes('market_kasasi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_market_kasasi' || a.type === 'market_kasasi');
+      const idx = findActivityIndex('market_kasasi', currentTopic || 'market_kasasi', selectedGrade, null, isOther);
       if (idx !== -1) return idx;
     }
     if (showKesirDuvariPizza) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'kesir_duvari_pizza' || a.id.includes('kesir_duvari_pizza')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_kesir_duvari_pizza' || a.type === 'kesir_duvari_pizza');
+      const idx = findActivityIndex('kesir_duvari_pizza', currentTopic || 'kesirler', selectedGrade, null, isOther);
       if (idx !== -1) return idx;
     }
     if (showEsSesli) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'es_sesli' || a.id.includes('es_sesli')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_es_sesli' || a.type === 'es_sesli');
+      const idx = findActivityIndex('es_sesli', currentTopic || 'es_sesli', selectedGrade, null, isOther);
       if (idx !== -1) return idx;
     }
     if (showDengeTerazisi) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.type === 'denge_terazisi' || a.id.includes('denge_terazisi')) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.id === 'other_denge_terazisi' || a.type === 'denge_terazisi');
+      const idx = findActivityIndex('denge_terazisi', currentTopic || 'tartma_olcme', selectedGrade, null, isOther);
       if (idx !== -1) return idx;
     }
-
-    // 2. Standart ders & müfredat soruları (currentTopic)
+    if (showSiviOlcmeVideoModal) {
+      const idx = findActivityIndex('sivi_olcme_video', 'standart_olmayan_sivi_olcme_video', selectedGrade || 2, null, false);
+      if (idx !== -1) return idx;
+    }
+    if (showSiviTahminAkvaryum) {
+      const idx = findActivityIndex('sivi_tahmin_akvaryum', 'sivi_tahmin_akvaryum', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showLessonVideo) {
+      const idx = findActivityIndex('lesson_video', currentTopic || undefined, selectedGrade || 2, null, false);
+      if (idx !== -1) return idx;
+    }
+    if (showGeoboard) {
+      const idx = findActivityIndex('geoboard', 'geometri_tahtasi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showGeometricNets) {
+      const idx = findActivityIndex('geometric_nets', 'cisimler_acilimi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (show3DLab) {
+      const idx = findActivityIndex('3d_lab', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showXOXGame) {
+      const idx = findActivityIndex('xox', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showAynisiniBul) {
+      const idx = findActivityIndex('aynisini_bul', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showOnuBul) {
+      const idx = findActivityIndex('onu_bul', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showYirmiyiBul) {
+      const idx = findActivityIndex('yirmiyi_bul', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showGeometrikSekilleriBul) {
+      const idx = findActivityIndex('geometrik_sekilleri_bul', undefined, selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showOnlukBirlik) {
+      const idx = findActivityIndex('onluk_birlik', 'onluk_birlik', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showSayiBasketi) {
+      const idx = findActivityIndex('sayi_basketi', 'sayi_basketi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showKuralliCumle) {
+      const idx = findActivityIndex('kuralli_cumle', 'kuralli_cumle', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showHeceSayisi) {
+      const idx = findActivityIndex('hece_sayisi', 'hece_sayisi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showSozlukSirala) {
+      const idx = findActivityIndex('sozluk_sirala', 'sozluk_sirala', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showKelimeSirala) {
+      const idx = findActivityIndex('kelime_sirala', 'kelime_sirala', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showHeceMakasi) {
+      const idx = findActivityIndex('hece_makasi', 'hece_makasi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showYazimDedektifi) {
+      const idx = findActivityIndex('yazim_dedektifi', 'yazim_dedektifi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showDedektif5N1K) {
+      const idx = findActivityIndex('dedektif_5n1k', 'dedektif_5n1k', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showSatirSonuHece) {
+      const idx = findActivityIndex('satir_sonu_hece', 'satir_sonu_hece', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showNoktalamaAvcisi) {
+      const idx = findActivityIndex('noktalama_avcisi', 'noktalama_avcisi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showHarfCorbasi) {
+      const idx = findActivityIndex('harf_corbasi', 'harf_corbasi', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showGeriDonusum) {
+      const idx = findActivityIndex('geri_donusum', 'geri_donusum', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showSaglikliTabak) {
+      const idx = findActivityIndex('saglikli_tabak', 'saglikli_tabak', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showIstekIhtiyac) {
+      const idx = findActivityIndex('istek_ihtiyac', 'istek_ihtiyac', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showMevsimGardirobu) {
+      const idx = findActivityIndex('mevsim_gardirobu', 'mevsim_gardirobu', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showAblukaGame) {
+      const idx = findActivityIndex('abluka', 'abluka', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showSudokuGame) {
+      const idx = findActivityIndex('sudoku', 'sudoku', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
+    if (showGorselliSudoku) {
+      const idx = findActivityIndex('gorselli_sudoku', 'gorselli_sudoku', selectedGrade, null, isOther);
+      if (idx !== -1) return idx;
+    }
     if (currentTopic && (gameState === 'playing' || gameState === 'gameover')) {
-      if (selectedGrade) {
-        const idx = ALL_ACTIVITIES_LIST.findIndex(a => (a.topicKey === currentTopic || a.id === `g${selectedGrade}_${currentTopic}`) && a.grade === selectedGrade);
-        if (idx !== -1) return idx;
-      }
-      const idx = ALL_ACTIVITIES_LIST.findIndex(a => a.topicKey === currentTopic || a.id.includes(currentTopic));
+      const idx = findActivityIndex('grade_topic', currentTopic, selectedGrade, null, false);
       if (idx !== -1) return idx;
     }
 
-    // 3. Fallback: saklanan index
     if (currentActivityIndex >= 0 && currentActivityIndex < ALL_ACTIVITIES_LIST.length) {
       return currentActivityIndex;
     }
@@ -5804,7 +5658,14 @@ export default function App() {
    * kesintisiz, sırayla bir önceki etkinliğe geçer.
    */
   const handlePrevActivity = () => {
-    const currentIdx = getCurrentLiveActivityIndex();
+    let currentIdx = currentActivityIndex;
+    if (currentIdx < 0 || !isInsideAnyGame) {
+      currentIdx = getCurrentLiveActivityIndex();
+    }
+    if (!isInsideAnyGame && currentActivityIndex < 0) {
+      switchToActivityByIndex(ALL_ACTIVITIES_LIST.length - 1);
+      return;
+    }
     const prevIdx = (currentIdx - 1 + ALL_ACTIVITIES_LIST.length) % ALL_ACTIVITIES_LIST.length;
     switchToActivityByIndex(prevIdx);
   };
@@ -5812,9 +5673,18 @@ export default function App() {
   /**
    * 1. Sınıftan başlayıp en son 6. İngilizce Oyunlara kadar tüm etkinlikler arasında
    * kesintisiz, sırayla bir sonraki etkinliğe geçer.
+   * 1. Sınıf -> 2. Sınıf -> 3. Sınıf -> 4. Sınıf -> 5. Diğer Oyunlar -> 6. İngilizce Oyunlar -> 1. Sınıf
    */
   const handleNextActivity = () => {
-    const currentIdx = getCurrentLiveActivityIndex();
+    let currentIdx = currentActivityIndex;
+    if (currentIdx < 0 || !isInsideAnyGame) {
+      currentIdx = getCurrentLiveActivityIndex();
+    }
+    // Eğer henüz bir etkinlikte değilsek doğrudan 1. Sınıfın ilk etkinliğinden başla
+    if (!isInsideAnyGame && (currentActivityIndex < 0 || (currentActivityIndex === 0 && gameState === 'welcome'))) {
+      switchToActivityByIndex(0);
+      return;
+    }
     const nextIdx = (currentIdx + 1) % ALL_ACTIVITIES_LIST.length;
     switchToActivityByIndex(nextIdx);
   };
@@ -6474,19 +6344,29 @@ export default function App() {
 
   return (
     <div className="relative h-[100dvh] bg-gradient-to-br from-sky-100 via-blue-50 to-amber-50/70 dark:from-[#0B132B] dark:via-blue-950 dark:to-slate-950 text-blue-950 dark:text-gray-100 flex flex-col font-sans transition-colors duration-200 overflow-hidden select-none">
-      {/* ORIGINAL POSITIVE CRISP BACKGROUND IMAGE WITH REDUCED BLUR & CLEAR VISIBILITY */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center scale-105 blur-[1px] transition-all duration-300"
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK VE KARŞILAMA ARKA PLANI (1. SINIFTAKİ GİBİ DAİMA GÖRSELİMİZ GÖRÜNÜR) */}
+      {(gameState === 'playing' || gameState === 'gameover' || showTopicModal) ? (
+        <ActivityBackground 
+          theme="doga" 
         />
-        {/* SAKİN VE DENGELİ KOYU OVERLAY (SİYAH/LACİVERT %15-20 OPASİTE) */}
-        <div className="absolute inset-0 bg-[#070D1E]/20" />
-        {/* EN ALT ŞERİT İÇİN TURUNCU-KAHVE TONLARI SAKİNLEŞTİREN VE TELİF ALANIYLA KONTRASTI SAĞLAYAN SİYAH/LACİVERT OVERLAY */}
-        <div className="absolute inset-x-0 bottom-0 h-72 sm:h-96 md:h-[420px] bg-gradient-to-t from-[#070D1E]/85 via-[#070D1E]/40 to-transparent pointer-events-none" />
-      </div>
+      ) : (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          <img 
+            src="/dere3.webp" 
+            alt="Arka Plan Görseli"
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover object-center scale-105 blur-[0.5px] transition-all duration-300 filter brightness-105 contrast-105"
+          />
+          {/* Güneşli Sıcak Gökyüzü ve Neşeli Maskotlar */}
+          <div className="absolute inset-0 bg-gradient-to-b from-sky-400/15 via-transparent to-slate-950/40 pointer-events-none" />
+          <div className="absolute top-2 left-4 w-14 h-14 sm:w-16 sm:h-16 opacity-90 drop-shadow-md pointer-events-none animate-pulse">
+            <img src="/assets/sudoku/gunes.png" alt="Güneş" className="w-full h-full object-contain" />
+          </div>
+          <div className="absolute top-3 right-6 w-12 h-12 sm:w-14 sm:h-14 opacity-90 drop-shadow-md pointer-events-none transform rotate-12">
+            <img src="/assets/sudoku/kelebek.png" alt="Kelebek" className="w-full h-full object-contain" />
+          </div>
+        </div>
+      )}
 
       {/* GLOBAL HEADER BAR - CLEAN NEUTRAL DARK SLATE UI (HIDDEN ON INTRO) */}
       {!showIntro && (
@@ -6678,14 +6558,6 @@ export default function App() {
           onClick={() => {
             playMp3('/op.mp3');
 
-            // 0. If inside video modal, close it directly and return to 2. Grade geometry
-            if (showSiviOlcmeVideoModal) {
-              setShowSiviOlcmeVideoModal(false);
-              setSelectedGrade(2);
-              setSelectedCategoryId('geometri');
-              setGameState('welcome');
-              return;
-            }
             if (showAndroidAppsModal) {
               setShowAndroidAppsModal(false);
               return;
@@ -6902,20 +6774,10 @@ export default function App() {
         <button
           onClick={() => {
             playMp3('/op.mp3');
-            // If inside video modal, advance to next activity (sivi_olcme)
-            if (showSiviOlcmeVideoModal) {
-              setShowSiviOlcmeVideoModal(false);
-              selectTopicAndStart('sivi_olcme', 2);
-              return;
-            }
-            // If inside an active game/activity, navigate to next activity sequentially!
-            if (isInsideAnyGame) {
-              handleNextActivity();
-              return;
-            }
-            handleForwardNavigation();
+            handleNextActivity();
           }}
-          title="İleri git"
+          title="Sonraki Etkinliğe Geç"
+          aria-label="Sonraki Etkinlik"
           className="relative group w-11 h-11 xs:w-13 xs:h-13 sm:w-16 sm:h-16 aspect-square transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer filter drop-shadow-[0_3px_6px_rgba(0,0,0,0.35)] shrink-0"
         >
           <img 
@@ -9441,7 +9303,7 @@ export default function App() {
           <div className="flex-1 flex flex-col items-center justify-between w-full h-full max-h-full overflow-hidden min-h-0 py-0.5 sm:py-1 px-1 sm:px-2 md:px-4 max-w-[1850px] mx-auto">
             {/* MERKEZ: SORU ÇERÇEVESİ (ŞIKLARIN GENİŞLİĞİ KADAR, ŞIKLAR ÇERÇEVENİN İÇİNDE) */}
             <div className="flex-1 w-full max-w-xl lg:max-w-2xl flex flex-col justify-center min-h-0 z-10 shrink">
-              <div className="flex-1 flex flex-col p-2 sm:p-3 bg-[#0b1328] border-2 border-blue-500/50 shadow-[0_12px_36px_rgba(0,0,0,0.85),0_0_16px_rgba(59,130,246,0.15)] rounded-2xl sm:rounded-3xl w-full justify-between overflow-hidden min-h-0 relative h-full">
+              <div className="flex-1 flex flex-col p-2 sm:p-3 bg-[#0b1328]/85 backdrop-blur-md border-2 border-blue-500/50 shadow-[0_12px_36px_rgba(0,0,0,0.85),0_0_16px_rgba(59,130,246,0.15)] rounded-2xl sm:rounded-3xl w-full justify-between overflow-hidden min-h-0 relative h-full">
                 {/* TOP BAR: STANDARDIZED UNIFORM CAPSULES */}
                 <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-1 sm:mb-1.5 shrink-0 w-full h-8 sm:h-9">
                   {/* LEFT: GROUP BADGE & TOPIC */}
@@ -9688,10 +9550,10 @@ export default function App() {
 
               // SORU GRUBU SÜTUNU: NÖTR KOYU ANTRASİT/LACİVERT PANEL & OYUNCU ACCENT KENARLIK
               const containerClasses = isWinnerGroup
-                ? `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-4 border-yellow-400 bg-[#0b1328] shadow-[0_0_35px_rgba(250,204,21,0.85)] ring-4 ring-yellow-400/50 overflow-hidden min-h-0 z-30 scale-[1.02] transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`
+                ? `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-4 border-yellow-400 bg-[#0b1328]/90 backdrop-blur-md shadow-[0_0_35px_rgba(250,204,21,0.85)] ring-4 ring-yellow-400/50 overflow-hidden min-h-0 z-30 scale-[1.02] transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`
                 : isOtherGroup
-                ? `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-2 ${groupTheme.containerBorder} bg-[#0b1328] opacity-65 shadow-xl overflow-hidden min-h-0 z-10 transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`
-                : `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-2 ${groupTheme.containerBorder} bg-[#0b1328] shadow-2xl overflow-hidden min-h-0 z-10 transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`;
+                ? `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-2 ${groupTheme.containerBorder} bg-[#0b1328]/80 backdrop-blur-md opacity-65 shadow-xl overflow-hidden min-h-0 z-10 transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`
+                : `relative flex-1 flex flex-col justify-between p-1.5 sm:p-2.5 rounded-2xl sm:rounded-3xl border-2 ${groupTheme.containerBorder} bg-[#0b1328]/85 backdrop-blur-md shadow-2xl overflow-hidden min-h-0 z-10 transition-all w-full ${cardMaxWidth} ${cardAlignment} h-full`;
 
               return (
                 <div

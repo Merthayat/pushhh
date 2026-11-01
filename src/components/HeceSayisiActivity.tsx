@@ -8,6 +8,7 @@ import {
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
 import { BasketballRaceTrack, SingleBasketballTrack } from './BasketballRaceTrack';
+import { ActivityBackground } from './ActivityBackground';
 
 export interface HeceSayisiActivityProps {
   onClose: () => void;
@@ -889,16 +890,8 @@ export const HeceSayisiActivity: React.FC<HeceSayisiActivityProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] sm:top-[60px] z-[200] flex flex-col font-sans select-none overflow-hidden bg-slate-900 text-white"
     >
-      {/* 1. STANDART ESKİ ARKA PLAN GÖRSELİ (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center pointer-events-none select-none filter brightness-95" 
-        />
-        <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ ETKİNLİK ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* MAIN CONTENT AREA */}
       <div className={`flex-1 flex flex-row items-center justify-center ${

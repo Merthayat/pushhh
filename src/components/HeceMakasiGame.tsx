@@ -15,6 +15,7 @@ import {
 import { Student } from '../types/student';
 import { StudentAvatarDock } from './StudentAvatarDock';
 import { playScissorCutSound } from '../utils/scissorSound';
+import { ActivityBackground } from './ActivityBackground';
 
 export const TARGET_QUESTIONS = 30;
 
@@ -595,16 +596,8 @@ export const HeceMakasiGame: React.FC<HeceMakasiGameProps> = ({
       style={{ top: 'var(--app-header-height, 74px)' }}
       className="fixed inset-x-0 bottom-0 top-[52px] xs:top-[60px] sm:top-[74px] md:top-[80px] z-[200] flex flex-col bg-slate-950 text-white select-none overflow-hidden font-sans"
     >
-      {/* 1. STANDART ESKİ ARKA PLAN GÖRSELİ (/dere3.webp) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <img 
-          src="/dere3.webp" 
-          alt="Arka Plan Görseli"
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center pointer-events-none select-none filter brightness-95" 
-        />
-        <div className="absolute inset-0 bg-slate-950/40 pointer-events-none" />
-      </div>
+      {/* ÇOCUKLAR İÇİN CANLI, EĞLENCELİ HECE MAKASI ARKA PLANI (DOĞA GÖRSELİMİZ) */}
+      <ActivityBackground theme="doga" />
 
       {/* 2. MAIN BATTLE ARENA / WORKSPACE */}
       <main className="relative z-10 flex-1 w-full max-w-7xl mx-auto p-1.5 sm:p-2 flex flex-col justify-between overflow-hidden min-h-0">
