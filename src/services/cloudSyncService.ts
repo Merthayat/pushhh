@@ -12,6 +12,12 @@ import { Student } from '../types/student';
 import { ClassCountersData } from '../utils/counterStorage';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
 import { loadHomeworkData, calculateTotalHomework } from '../utils/homeworkStore';
+import { 
+  mergeStudentLists, 
+  calculateStudentListTotalSolved, 
+  saveToMultiUserVault, 
+  loadFromMultiUserVault 
+} from '../utils/studentStore';
 
 export interface CloudClassroomData {
   userId: string;
@@ -183,10 +189,36 @@ export async function saveUserDataToCloud(
 
   const classroomRef = doc(db, 'users', userId, 'data', 'classroom');
 
+  // KRİTİK VERİ KORUMA - ÖĞRENCİ VE İSTATİSTİK KORUMASI:
+  // Eğer kaydedilmek istenen öğrencilerin toplam çözdüğü soru sayısı 0 ise,
+  // ama yerel kasada (Vault) bu kullanıcıya ait önceden çözülmüş sorular varsa,
+  // 0'lı boş liste ile üzerine yazma! Kasadaki kayıtla birleştir.
+  let studentsToPersist = students;
+  const newSolved = calculateStudentListTotalSolved(students);
+  const vaultCandidates = [
+    userEmail ? loadFromMultiUserVault(userEmail) : null,
+    loadFromMultiUserVault(userId)
+  ].filter(Boolean);
+  
+  if (vaultCandidates.length > 0) {
+    const bestVault = vaultCandidates.reduce((best, cur) => 
+      calculateStudentListTotalSolved(cur!) > calculateStudentListTotalSolved(best!) ? cur : best
+    , vaultCandidates[0]);
+    if (bestVault && calculateStudentListTotalSolved(bestVault) > newSolved) {
+      studentsToPersist = mergeStudentLists(students, bestVault);
+    }
+  }
+
+  // Multi-user vault'a hemen kaydet (yerel çifte yedek)
+  saveToMultiUserVault(userId, studentsToPersist, { userId, userEmail: userEmail || undefined });
+  if (userEmail) {
+    saveToMultiUserVault(userEmail.toLowerCase(), studentsToPersist, { userId, userEmail });
+  }
+
   const payload: Record<string, any> = {
     userId,
     userEmail: userEmail || '',
-    studentsJson: JSON.stringify(students),
+    studentsJson: JSON.stringify(studentsToPersist),
     countersJson: JSON.stringify(counters),
     selectedStudentIdsJson: selectedStudentIds ? JSON.stringify(selectedStudentIds) : '[]',
     lastSyncedAt: timestamp
@@ -303,6 +335,13 @@ export async function loadUserDataFromCloud(
   }
 
   lastSyncedDataSignature = `${userId}::${data.studentsJson || '[]'}::${data.selectedStudentIdsJson || '[]'}::${data.homeworkJson || ''}`;
+
+  if (Array.isArray(students) && students.length > 0) {
+    saveToMultiUserVault(userId, students, { userId, userEmail: userEmail || undefined });
+    if (userEmail) {
+      saveToMultiUserVault(userEmail.toLowerCase(), students, { userId, userEmail });
+    }
+  }
 
   return {
     userId,

@@ -99,67 +99,262 @@ export function getStudentsInitKey(userId?: string | null): string {
 }
 
 /**
- * Checks whether a student list is just the default 12-item sample roster with 0 stats.
+ * Calculates total questions solved across all students in a roster
  */
-export function isDefaultSampleList(list: Student[]): boolean {
-  if (!Array.isArray(list) || list.length === 0) return true;
-  if (list.length !== DEFAULT_STUDENTS.length) return false;
-  const defaultIds = new Set(DEFAULT_STUDENTS.map(s => s.id));
-  const allIdsMatch = list.every(s => defaultIds.has(s.id));
-  if (!allIdsMatch) return false;
-  const totalStats = list.reduce(
-    (acc, s) => acc + (s.totalCorrect || 0) + (s.totalWrong || 0) + (s.gamesPlayed || 0),
-    0
-  );
-  return totalStats === 0;
+export function calculateStudentListTotalSolved(list: Student[]): number {
+  if (!Array.isArray(list) || list.length === 0) return 0;
+  return list.reduce((sum, s) => {
+    const directTotal = (s.totalCorrect || 0) + (s.totalWrong || 0);
+    let topicTotal = 0;
+    if (s.topicStats) {
+      Object.values(s.topicStats).forEach(ts => {
+        topicTotal += (ts.correct || 0) + (ts.wrong || 0);
+      });
+    }
+    return sum + Math.max(directTotal, topicTotal);
+  }, 0);
 }
 
 /**
- * Searches localStorage slots (legacy, guest, backup, email, and user slots) for real
- * custom student lists created by the teacher, and recovers them.
+ * Intelligently merges two student lists, ALWAYS keeping the highest question counts,
+ * highest topic stats, won games, and custom student names. Never resets existing stats!
+ */
+export function mergeStudentLists(currentList: Student[] = [], incomingList: Student[] = []): Student[] {
+  if (!Array.isArray(incomingList) || incomingList.length === 0) return Array.isArray(currentList) ? currentList : [];
+  if (!Array.isArray(currentList) || currentList.length === 0) return incomingList;
+
+  const result = [...currentList];
+  const indexById = new Map<string, number>();
+  const indexByName = new Map<string, number>();
+
+  result.forEach((s, idx) => {
+    if (s.id) indexById.set(s.id, idx);
+    const normalizedName = `${s.grade || 2}__${s.name.trim().toLocaleLowerCase('tr')}`;
+    indexByName.set(normalizedName, idx);
+  });
+
+  incomingList.forEach(incoming => {
+    const normalizedName = `${incoming.grade || 2}__${incoming.name.trim().toLocaleLowerCase('tr')}`;
+    const targetIdx = indexById.has(incoming.id) 
+      ? indexById.get(incoming.id)! 
+      : indexByName.has(normalizedName) 
+      ? indexByName.get(normalizedName)! 
+      : -1;
+
+    if (targetIdx !== -1) {
+      // Merge student preserving highest achievements
+      const curr = result[targetIdx];
+      const mergedTopicStats = { ...(curr.topicStats || {}) };
+
+      if (incoming.topicStats) {
+        Object.entries(incoming.topicStats).forEach(([topKey, inStat]) => {
+          const curStat = mergedTopicStats[topKey];
+          if (!curStat) {
+            mergedTopicStats[topKey] = { ...inStat };
+          } else {
+            mergedTopicStats[topKey] = {
+              correct: Math.max(curStat.correct || 0, inStat.correct || 0),
+              wrong: Math.max(curStat.wrong || 0, inStat.wrong || 0),
+              lastPlayed: inStat.lastPlayed || curStat.lastPlayed || new Date().toISOString()
+            };
+          }
+        });
+      }
+
+      result[targetIdx] = {
+        ...curr,
+        name: curr.name || incoming.name,
+        avatar: curr.avatar || incoming.avatar,
+        avatarBg: curr.avatarBg || incoming.avatarBg,
+        className: curr.className || incoming.className,
+        totalCorrect: Math.max(curr.totalCorrect || 0, incoming.totalCorrect || 0),
+        totalWrong: Math.max(curr.totalWrong || 0, incoming.totalWrong || 0),
+        gamesPlayed: Math.max(curr.gamesPlayed || 0, incoming.gamesPlayed || 0),
+        gamesWon: Math.max(curr.gamesWon || 0, incoming.gamesWon || 0),
+        topicStats: mergedTopicStats
+      };
+    } else {
+      // New student not in current list, append!
+      result.push(incoming);
+      indexById.set(incoming.id, result.length - 1);
+      indexByName.set(normalizedName, result.length - 1);
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Checks if a student list is merely an unplayed sample default list.
+ * Returns false if ANY question was answered OR if custom names were entered.
+ */
+export function isDefaultSampleList(list: Student[]): boolean {
+  if (!Array.isArray(list) || list.length === 0) return true;
+  const hasSolved = list.some(s => (s.totalCorrect || 0) > 0 || (s.totalWrong || 0) > 0 || (s.gamesPlayed || 0) > 0);
+  if (hasSolved) return false;
+
+  // Check if names differ from standard default sets
+  const defaultNames = new Set(DEFAULT_STUDENTS.map(s => s.name.trim().toLowerCase()));
+  defaultNames.add('ali yılmaz');
+  defaultNames.add('ayşe kaya');
+  defaultNames.add('mehmet demir');
+
+  // If at least one student is NOT in the default demo set, user has customized their roster!
+  const hasCustomName = list.some(s => s.name && !defaultNames.has(s.name.trim().toLowerCase()));
+  return !hasCustomName;
+}
+
+export const MULTI_USER_VAULT_KEY = 'olcico_multi_user_vault_v2';
+
+export interface VaultUserRecord {
+  identifier: string; // uid or clean email
+  userEmail?: string;
+  userId?: string;
+  students: Student[];
+  totalSolved: number;
+  lastUpdated: string;
+}
+
+/**
+ * Saves a user's roster snapshot into the permanent multi-user vault in localStorage.
+ * Automatically merges with existing vault data so records are never lost or downgraded.
+ */
+export function saveToMultiUserVault(
+  identifier: string,
+  students: Student[],
+  meta?: { userId?: string; userEmail?: string }
+): void {
+  try {
+    if (!identifier || !Array.isArray(students) || students.length === 0) return;
+    const cleanId = identifier.trim().toLowerCase();
+    const raw = localStorage.getItem(MULTI_USER_VAULT_KEY);
+    const vault: Record<string, VaultUserRecord> = raw ? JSON.parse(raw) : {};
+
+    const existingRecord = vault[cleanId];
+    const existingStudents = existingRecord?.students || [];
+    const mergedStudents = mergeStudentLists(existingStudents, students);
+    const totalSolved = calculateStudentListTotalSolved(mergedStudents);
+
+    vault[cleanId] = {
+      identifier: cleanId,
+      userId: meta?.userId || existingRecord?.userId,
+      userEmail: meta?.userEmail || existingRecord?.userEmail || (cleanId.includes('@') ? cleanId : undefined),
+      students: mergedStudents,
+      totalSolved,
+      lastUpdated: new Date().toISOString()
+    };
+
+    localStorage.setItem(MULTI_USER_VAULT_KEY, JSON.stringify(vault));
+  } catch (err) {
+    console.error('Error saving to multi-user vault:', err);
+  }
+}
+
+/**
+ * Loads a user's snapshot from the permanent multi-user vault
+ */
+export function loadFromMultiUserVault(identifier: string): Student[] | null {
+  try {
+    if (!identifier) return null;
+    const cleanId = identifier.trim().toLowerCase();
+    const raw = localStorage.getItem(MULTI_USER_VAULT_KEY);
+    if (!raw) return null;
+    const vault: Record<string, VaultUserRecord> = JSON.parse(raw);
+    const record = vault[cleanId];
+    return record && Array.isArray(record.students) && record.students.length > 0
+      ? record.students
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Gets all saved user accounts from the permanent multi-user vault
+ */
+export function getAllUsersFromVault(): VaultUserRecord[] {
+  try {
+    const raw = localStorage.getItem(MULTI_USER_VAULT_KEY);
+    if (!raw) return [];
+    const vault: Record<string, VaultUserRecord> = JSON.parse(raw);
+    return Object.values(vault);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Searches localStorage slots (legacy, guest, backup, email, vault, and user slots)
+ * for custom student lists with solved questions, intelligently merging all found data.
  */
 export function recoverLegacyOrBackupStudents(
   userId?: string | null,
   userEmail?: string | null
 ): Student[] | null {
   try {
+    let bestMerged: Student[] = [];
+    const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+
+    // 1. Merge from vault first (both uid and email records)
+    if (userId) {
+      const fromVaultUid = loadFromMultiUserVault(userId);
+      if (fromVaultUid && fromVaultUid.length > 0) {
+        bestMerged = mergeStudentLists(bestMerged, fromVaultUid);
+      }
+    }
+    if (cleanEmail) {
+      const fromVaultEmail = loadFromMultiUserVault(cleanEmail);
+      if (fromVaultEmail && fromVaultEmail.length > 0) {
+        bestMerged = mergeStudentLists(bestMerged, fromVaultEmail);
+      }
+    }
+
+    // Check all vault records for matching email or userId
+    const allVaultRecords = getAllUsersFromVault();
+    for (const rec of allVaultRecords) {
+      if (cleanEmail && rec.userEmail && rec.userEmail.trim().toLowerCase() === cleanEmail) {
+        bestMerged = mergeStudentLists(bestMerged, rec.students);
+      } else if (userId && rec.userId === userId) {
+        bestMerged = mergeStudentLists(bestMerged, rec.students);
+      }
+    }
+
+    // 2. Collect candidate keys to check
     const keysToCheck: string[] = [];
 
-    // 1. User-specific backup and user keys first
     if (userId) {
       keysToCheck.push(`classroom_students_backup_${userId}`);
       keysToCheck.push(`classroom_students_user_${userId}`);
     }
 
-    if (userEmail) {
-      const cleanEmail = userEmail.trim().toLowerCase();
+    if (cleanEmail) {
       keysToCheck.push(`classroom_students_backup_${cleanEmail}`);
       keysToCheck.push(`classroom_students_user_${cleanEmail}`);
       keysToCheck.push(`classroom_students_${cleanEmail}`);
     }
 
-    // 2. Legacy keys where original teacher data was stored
-    keysToCheck.push(
-      STORAGE_KEY, // 'classroom_students_v1'
-      'classroom_students_backup_v1',
-      'classroom_students_guest_v1'
-    );
-
-    // 3. Scan all keys for matches
+    // 3. Scan all localStorage keys for relevant user/backup slots
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && !keysToCheck.includes(k)) {
         const lowerK = k.toLowerCase();
         if (
-          lowerK.includes('olcayto') ||
-          (userEmail && lowerK.includes(userEmail.toLowerCase())) ||
-          lowerK.startsWith('classroom_students_') ||
-          lowerK.includes('students')
+          (cleanEmail && lowerK.includes(cleanEmail)) ||
+          (userId && lowerK.includes(userId.toLowerCase())) ||
+          lowerK.startsWith('classroom_students_backup_') ||
+          lowerK.startsWith('classroom_students_user_')
         ) {
           keysToCheck.push(k);
         }
       }
     }
+
+    // 4. Legacy and guest fallback slots
+    keysToCheck.push(
+      'classroom_students_backup_v1',
+      STORAGE_KEY,
+      'classroom_students_guest_v1'
+    );
 
     for (const key of keysToCheck) {
       const raw = localStorage.getItem(key);
@@ -167,25 +362,32 @@ export function recoverLegacyOrBackupStudents(
       try {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const mapped = parsed.map((s: any) => ({
+          const mapped: Student[] = parsed.map((s: any) => ({
             ...s,
             grade: (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2
           }));
-          if (!isDefaultSampleList(mapped)) {
-            // Found real teacher students! Save to active user and backup
-            const uid = userId !== undefined ? userId : currentStoreUserId;
-            if (uid) {
-              const storageKey = getStudentsStorageKey(uid);
-              const initKey = getStudentsInitKey(uid);
-              localStorage.setItem(initKey, 'true');
-              localStorage.setItem(storageKey, JSON.stringify(mapped));
-              localStorage.setItem(`classroom_students_backup_${uid}`, JSON.stringify(mapped));
-            }
-            return mapped;
+
+          const solved = calculateStudentListTotalSolved(mapped);
+          if (!isDefaultSampleList(mapped) || solved > 0) {
+            bestMerged = mergeStudentLists(bestMerged, mapped);
           }
         }
       } catch {}
     }
+
+    const totalSolved = calculateStudentListTotalSolved(bestMerged);
+    if (bestMerged.length > 0 && (!isDefaultSampleList(bestMerged) || totalSolved > 0)) {
+      const uid = userId !== undefined ? userId : currentStoreUserId;
+      if (uid) {
+        saveStudents(bestMerged, uid);
+        saveToMultiUserVault(uid, bestMerged, { userId: uid, userEmail: cleanEmail || undefined });
+      }
+      if (cleanEmail) {
+        saveToMultiUserVault(cleanEmail, bestMerged, { userId: uid || undefined, userEmail: cleanEmail });
+      }
+      return bestMerged;
+    }
+
     return null;
   } catch {
     return null;
@@ -296,11 +498,15 @@ export function saveStudents(students: Student[], userId?: string | null): void 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
     }
 
-    // Always maintain a safe persistent backup of real custom student data
-    if (Array.isArray(students) && students.length > 0 && !isDefaultSampleList(students)) {
-      localStorage.setItem('classroom_students_backup_v1', JSON.stringify(students));
-      if (uid) {
-        localStorage.setItem(`classroom_students_backup_${uid}`, JSON.stringify(students));
+    // Always maintain a safe persistent backup of real custom student data and solved stats
+    if (Array.isArray(students) && students.length > 0) {
+      const solved = calculateStudentListTotalSolved(students);
+      if (!isDefaultSampleList(students) || solved > 0) {
+        localStorage.setItem('classroom_students_backup_v1', JSON.stringify(students));
+        if (uid) {
+          localStorage.setItem(`classroom_students_backup_${uid}`, JSON.stringify(students));
+          saveToMultiUserVault(uid, students);
+        }
       }
     }
   } catch (err) {

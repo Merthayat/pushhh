@@ -673,7 +673,7 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
                       await onRecoverStudents();
                       playMp3?.('/coin.mp3');
                       setActionMessage({
-                        text: 'Öğrenci listeniz ve kayıtlarınız yedekten başarıyla geri getirildi!',
+                        text: 'Öğrenci listeniz ve istatistikleriniz yedekten başarıyla geri getirildi!',
                         type: 'success'
                       });
                     } catch (err: any) {
@@ -686,10 +686,13 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
                     }
                   }}
                   disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
                 >
-                  <ArchiveRestore className="w-4 h-4 text-amber-400" />
-                  <span>Kayıtlı Öğrencileri Kurtar / Geri Getir</span>
+                  <ArchiveRestore className="w-4 h-4 text-amber-400 shrink-0" />
+                  <div className="text-left">
+                    <span className="block font-bold">📥 Kayıtlı Öğrenci & Puanları Kurtar / Geri Getir</span>
+                    <span className="block text-[10px] text-amber-300/70 font-normal">Bulut ve cihaz kasasındaki verilerinizi birleştirip korur</span>
+                  </div>
                 </button>
               )}
 
@@ -830,6 +833,40 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
               <Users className="w-4 h-4 text-emerald-200" />
               <span>🎒 23 Kişilik Gerçek Sınıfımı Yükle (2. Sınıf)</span>
             </button>
+
+            {onRecoverStudents && (
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsLoading(true);
+                  setActionMessage(null);
+                  playMp3?.('/op.mp3');
+                  try {
+                    await onRecoverStudents();
+                    playMp3?.('/coin.mp3');
+                    setActionMessage({
+                      text: 'Cihazdaki kayıtlı öğrencileriniz ve istatistikleriniz başarıyla geri getirildi!',
+                      type: 'success'
+                    });
+                  } catch (err: any) {
+                    setActionMessage({
+                      text: 'Kurtarma sırasında bir hata oluştu: ' + (err?.message || 'Bilinmeyen hata'),
+                      type: 'error'
+                    });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+              >
+                <ArchiveRestore className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="text-left">
+                  <span className="block font-bold">📥 Cihazdaki Kayıtlı Öğrencileri Kurtar / Geri Getir</span>
+                  <span className="block text-[10px] text-amber-300/70 font-normal">Cihaz kasasındaki yedekleri geri yükler</span>
+                </div>
+              </button>
+            )}
 
             {/* Google Sign In Button */}
             <button
