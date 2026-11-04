@@ -12,16 +12,20 @@ import {
   Maximize2,
   Minimize2,
   Cloud,
-  CloudCheck
+  CloudCheck,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { User } from '../firebase';
 import { Student } from '../types/student';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
+import { deduplicateStudents } from '../utils/studentStore';
 import {
   loadHomeworkData,
   saveHomeworkData,
   syncHomeworkWithStudents,
   completeHomeworkToday,
+  adjustHomeworkPoints,
   undoTodayHomework,
   getTodayDateString,
   calculateFishScale,
@@ -201,10 +205,44 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
   }, [isOpen, initialGrade]);
 
-  // Seçili sınıftaki öğrenciler (Yalnızca öğretmenin listesindeki gerçek öğrenciler)
-  const currentGradeStudents = useMemo(() => {
-    return students.filter(s => s.grade === selectedGrade);
+  // Seçili sınıf seviyesindeki şubeler (örn: 2-A, 2-C)
+  const availableClasses = useMemo(() => {
+    const classes = new Set<string>();
+    deduplicateStudents(students)
+      .filter(s => s.grade === selectedGrade)
+      .forEach(s => {
+        const cls = (s.className || `${s.grade}-A`).trim().toUpperCase();
+        if (cls) classes.add(cls);
+      });
+    return Array.from(classes).sort();
   }, [students, selectedGrade]);
+
+  const [selectedClass, setSelectedClass] = useState<string>('2-C');
+
+  // Sınıf seviyesi veya şubeler değiştiğinde uygun bir şubeyi seçili yap
+  useEffect(() => {
+    if (availableClasses.length > 0) {
+      if (!availableClasses.includes(selectedClass)) {
+        const defaultBranch = 
+          availableClasses.find(c => c.includes('C')) || 
+          availableClasses.find(c => c.includes('A')) || 
+          availableClasses[0];
+        setSelectedClass(defaultBranch);
+      }
+    }
+  }, [availableClasses, selectedGrade, selectedClass]);
+
+  // Seçili sınıftaki ve şubedeki öğrenciler (Farklı şubeler asla aynı akvaryumda karışmaz!)
+  const currentGradeStudents = useMemo(() => {
+    return deduplicateStudents(students).filter(s => {
+      if (s.grade !== selectedGrade) return false;
+      if (availableClasses.length > 1) {
+        const sClass = (s.className || `${s.grade}-A`).trim().toUpperCase();
+        return sClass === selectedClass;
+      }
+      return true;
+    });
+  }, [students, selectedGrade, selectedClass, availableClasses]);
 
   const [homeworkMap, setHomeworkMap] = useState<Record<string, StudentHomeworkData>>({});
   const [fishes, setFishes] = useState<FishState[]>([]);
@@ -251,7 +289,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
   // Verileri yükle & senkronize et (Sadece modal açıldığında veya sınıf değiştiğinde 1 kez çalışır)
   useEffect(() => {
     if (!isOpen) return;
-    const existing = loadHomeworkData(currentUser?.uid);
+    const existing = loadHomeworkData(currentUser?.uid, currentUser?.email);
     const synced = syncHomeworkWithStudents(currentGradeStudents, existing);
     setHomeworkMap(synced);
 
@@ -259,7 +297,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     const existingCount = Object.keys(existing).length;
     const syncedCount = Object.keys(synced).length;
     if (syncedCount > existingCount) {
-      saveHomeworkData(synced, currentUser?.uid);
+      saveHomeworkData(synced, currentUser?.uid, currentUser?.email);
     }
 
     // Balık fizik durumlarını ref'e hazırla
@@ -437,7 +475,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
 
     // Bugün ilk defa yapılıyorsa tamamla
-    const res = completeHomeworkToday(fish.studentId, fish.name, 0, currentUser?.uid);
+    const res = completeHomeworkToday(fish.studentId, fish.name, 0, currentUser?.uid, currentUser?.email);
     if (res.success) {
       if (onTriggerCloudSync) {
         onTriggerCloudSync();
@@ -463,7 +501,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
       } catch {}
 
       // State güncelle (Tek bir kez re-render tetikler)
-      const updated = loadHomeworkData(currentUser?.uid);
+      const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
       setHomeworkMap(updated);
 
       const studentIdx = currentGradeStudents.findIndex(st => st.id === fish.studentId);
@@ -522,13 +560,13 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
 
   // Öğretmen Modunda Bugünkü Ödevi Geri Alma
   const handleUndo = useCallback((studentId: string, studentName: string) => {
-    const success = undoTodayHomework(studentId, currentUser?.uid);
+    const success = undoTodayHomework(studentId, currentUser?.uid, currentUser?.email);
     if (success) {
       if (onTriggerCloudSync) {
         onTriggerCloudSync();
       }
       if (soundEnabled && playMp3) playMp3('/hata.mp3');
-      const updated = loadHomeworkData(currentUser?.uid);
+      const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
       setHomeworkMap(updated);
 
       setFishes(prev =>
@@ -566,6 +604,46 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
   }, [soundEnabled, playMp3, homeworkMap, currentUser, onTriggerCloudSync]);
 
+  // Öğretmen düzenleme modunda balık puanını anında ve kalıcı olarak değiştir.
+  const handleAdjustPoints = useCallback((fish: FishState, delta: number) => {
+    const result = adjustHomeworkPoints(
+      fish.studentId,
+      delta,
+      currentUser?.uid,
+      currentUser?.email
+    );
+    if (!result.success) return;
+
+    onTriggerCloudSync?.();
+    const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
+    setHomeworkMap(updated);
+
+    const studentIdx = currentGradeStudents.findIndex(student => student.id === fish.studentId);
+    const modelIndex = studentIdx >= 0 ? studentIdx : fishes.findIndex(item => item.studentId === fish.studentId);
+    const updatedCutout = getCutoutFishInfo(modelIndex, result.newCount);
+    setFishes(prev => prev.map(item => item.studentId === fish.studentId ? {
+      ...item,
+      homeworkCount: result.newCount,
+      fishWidth: updatedCutout.calculatedWidth,
+      imageSrc: updatedCutout.imageSrc,
+      speciesName: updatedCutout.speciesName,
+      stageName: updatedCutout.stageName,
+      stageIndex: updatedCutout.stageIndex,
+      badge: updatedCutout.badge,
+      neededForNext: updatedCutout.neededForNext,
+      nextStageName: updatedCutout.nextStageName
+    } : item));
+
+    setActivePopup({
+      studentName: fish.name,
+      message: `Balık puanı ${delta > 0 ? 'artırıldı' : 'azaltıldı'} ve kaydedildi.`,
+      type: 'info',
+      count: result.newCount,
+      badge: updatedCutout.badge,
+      title: `${updatedCutout.speciesName} • ${updatedCutout.stageName}`
+    });
+  }, [currentUser, currentGradeStudents, fishes, onTriggerCloudSync]);
+
   // İstatistik hesaplamaları
   const totalStudents = fishes.length;
   const completedTodayCount = fishes.filter(f => f.lastCompletedDate === todayStr).length;
@@ -591,7 +669,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h2 className="font-black text-xs sm:text-sm md:text-base text-cyan-200 tracking-wide truncate">
-                  {selectedGrade}. SINIF ÖDEV AKVARYUMU
+                  {selectedGrade}. SINIF {availableClasses.length > 1 ? `(${selectedClass}) ` : ''}ÖDEV AKVARYUMU
                 </h2>
                 <span className="hidden xl:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shrink-0">
                   Canlı Takip
@@ -603,24 +681,57 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
             </div>
           </div>
 
-          {/* ORTA: 1, 2, 3 VE 4. SINIF SEÇİCİ SEKMELERİ */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-[#010e1a] p-0.5 sm:p-1 rounded-xl border border-cyan-500/40 shrink-0">
-            {[1, 2, 3, 4].map((grade) => {
-              const isSelected = selectedGrade === grade;
-              return (
-                <button
-                  key={grade}
-                  onClick={() => setSelectedGrade(grade)}
-                  className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-cyan-500 text-slate-950 shadow scale-105'
-                      : 'text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-950/60'
-                  }`}
-                >
-                  {grade}. Sınıf
-                </button>
-              );
-            })}
+          {/* ORTA: 1, 2, 3 VE 4. SINIF + ŞUBE SEÇİCİ SEKMELERİ */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Sınıf Seviyesi Seçici */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-[#010e1a] p-0.5 sm:p-1 rounded-xl border border-cyan-500/40 shrink-0">
+              {[1, 2, 3, 4].map((grade) => {
+                const isSelected = selectedGrade === grade;
+                return (
+                  <button
+                    key={grade}
+                    onClick={() => setSelectedGrade(grade)}
+                    className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-cyan-500 text-slate-950 shadow scale-105'
+                        : 'text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-950/60'
+                    }`}
+                  >
+                    {grade}. Sınıf
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Şube Seçici (Aynı sınıf seviyesinde birden fazla şube varsa - örn: 2-A ve 2-C asla karışmaz!) */}
+            {availableClasses.length > 1 && (
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-amber-950/40 p-0.5 sm:p-1 rounded-xl border border-amber-500/50 shadow-inner shrink-0">
+                <span className="text-[10px] font-black text-amber-300/90 px-1 hidden md:inline">
+                  Şube:
+                </span>
+                {availableClasses.map((cls) => {
+                  const isSelected = selectedClass === cls;
+                  const count = students.filter(s => s.grade === selectedGrade && (s.className || `${s.grade}-A`).trim().toUpperCase() === cls).length;
+                  return (
+                    <button
+                      key={cls}
+                      onClick={() => setSelectedClass(cls)}
+                      className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 shadow font-black scale-105'
+                          : 'text-amber-200/80 hover:text-amber-100 hover:bg-amber-900/50'
+                      }`}
+                      title={`${cls} Şubesi (${count} Balık)`}
+                    >
+                      <span>{cls}</span>
+                      <span className={`text-[9px] px-1 rounded-full ${isSelected ? 'bg-slate-900/30 text-slate-900 font-bold' : 'bg-amber-500/25 text-amber-300'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SAĞ: HIZLI İŞLEM BUTONLARI */}
@@ -922,19 +1033,46 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
                   )}
                 </div>
 
-                {/* Öğretmen Modunda Geri Al Butonu */}
-                {teacherMode && isCompletedToday && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUndo(fish.studentId, fish.name);
-                    }}
-                    className="mt-1 px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold border border-red-400 flex items-center gap-0.5 cursor-pointer z-30 shadow"
-                    title="Bugünkü ödevi geri al"
+                {/* Öğretmen Modunda puan düzenleme ve bugünkü ödevi geri alma */}
+                {teacherMode && (
+                  <div
+                    className="mt-1 flex items-center gap-1 rounded-lg border border-purple-300/40 bg-slate-950/90 p-1 shadow-lg z-30"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <RotateCcw className="w-2.5 h-2.5" />
-                    Geri Al
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(fish, -1)}
+                      disabled={fish.homeworkCount <= 0}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-rose-400/60 bg-rose-600/80 text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Balık puanını 1 azalt"
+                      aria-label={`${fish.name} puanını 1 azalt`}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="min-w-[3.25rem] text-center text-[9px] font-extrabold text-amber-200">
+                      {fish.homeworkCount} puan
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(fish, 1)}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-600/80 text-white hover:bg-emerald-500"
+                      title="Balık puanını 1 artır"
+                      aria-label={`${fish.name} puanını 1 artır`}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    {isCompletedToday && (
+                      <button
+                        type="button"
+                        onClick={() => handleUndo(fish.studentId, fish.name)}
+                        className="ml-0.5 flex items-center gap-0.5 rounded bg-red-600 px-1.5 py-1 text-[9px] font-bold text-white hover:bg-red-500"
+                        title="Bugünkü ödevi geri al"
+                      >
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        Geri Al
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );
