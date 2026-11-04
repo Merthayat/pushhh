@@ -11,6 +11,8 @@ import { auth, onAuthStateChanged, User } from './firebase';
 import { GoogleAuthSyncModal } from './components/GoogleAuthSyncModal';
 import {
   signInWithGoogle,
+  signInWithRedirectGoogle,
+  checkRedirectResult,
   signOutUser,
   saveUserDataToCloud,
   loadUserDataFromCloud,
@@ -72,6 +74,9 @@ import {
   loadStudents, 
   saveStudents, 
   DEFAULT_STUDENTS,
+  getDefaultStudentsForUser,
+  sanitizeStudentsForUser,
+  setActiveStoreUser,
   setActiveStoreUserId,
   getActiveStoreUserId,
   isDefaultSampleList,
@@ -80,13 +85,15 @@ import {
   calculateStudentListTotalSolved,
   saveToMultiUserVault,
   loadFromMultiUserVault,
+  getAllUsersFromVault,
   loadSelectedStudentIdsForGrade, 
   saveSelectedStudentIdsForGrade, 
   recordStudentAnswer, 
   recordStudentGameResult,
   resetAllStudentStats,
   resetGradeStudentStats,
-  resetTopicStatsForAllStudents
+  resetTopicStatsForAllStudents,
+  deduplicateStudents
 } from './utils/studentStore';
 import { getCurriculumTopicsForGrade } from './utils/topicHelper';
 import { StudentAvatarDock } from './components/StudentAvatarDock';
@@ -95,7 +102,9 @@ import { OdevAkvaryumuModal } from './components/OdevAkvaryumuModal';
 import { 
   loadHomeworkData, 
   saveHomeworkData, 
+  setActiveStoreHomeworkUser,
   setActiveStoreHomeworkUserId,
+  sanitizeHomeworkForUser,
   mergeHomeworkData,
   recoverAllPossibleHomeworkData,
   calculateTotalHomework
@@ -110,8 +119,12 @@ import {
   recordClassClick, 
   recordClassQuestionSolved,
   syncHistoricalQuestions,
-  GradeCategoryKey 
+  GradeCategoryKey,
+  setActiveCounterEmail,
+  sanitizeCountersForUser,
+  resetAllCounters
 } from './utils/counterStorage';
+import { startDailyAutoBackupScheduler } from './services/autoDailyBackupService';
 import { syncAndRecordGlobalVisit, refreshWorldwideVisitorCount } from './utils/globalVisitorTracker';
 import { ChromaKeyVideo } from './components/ChromaKeyVideo';
 import { AutoFitQuestionBox } from './components/AutoFitQuestionBox';
@@ -3156,7 +3169,7 @@ export default function App() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [showCountersModal, setShowCountersModal] = useState(false);
   const [countersData, setCountersData] = useState<ClassCountersData>(() => loadCounters());
-  const [students, setStudents] = useState<Student[]>(() => loadStudents());
+  const [students, setStudents] = useState<Student[]>(() => deduplicateStudents(loadStudents()));
   const activeGradeNumber: number = (selectedGrade && [1, 2, 3, 4].includes(selectedGrade)) ? selectedGrade : 2;
   // En başta kimse seçili olmasın: [null, null, null]
   const [selectedStudentIds, setSelectedStudentIds] = useState<(string | null)[]>([null, null, null]);
@@ -3170,133 +3183,86 @@ export default function App() {
   const [lastCloudSyncedAt, setLastCloudSyncedAt] = useState<string | null>(() => getLocalLastSyncedAt());
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const isInitialCloudSyncDone = useRef(false);
+  const currentLoadedUserRef = useRef<string | null>(null);
 
-  // Listen to Firebase Auth state
+  // Check for Google redirect sign-in result and listen to Firebase Auth state
   useEffect(() => {
+    // Check if user returned from a Google OAuth redirect
+    checkRedirectResult().catch(err => {
+      console.warn('Redirect sign-in check failed:', err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         // 1. Switch active store scope immediately to this user
-        const screenStudentsBeforeLogin = students;
-        const guestStudents = loadStudents(null);
-        setActiveStoreUserId(user.uid);
-        setActiveStoreHomeworkUserId(user.uid);
+        setActiveStoreUser(user.uid, user.email);
+        setActiveStoreHomeworkUser(user.uid, user.email);
+        setActiveCounterEmail(user.email);
+        const initCounters = loadCounters(user.email);
+        setCountersData(initCounters);
         isInitialCloudSyncDone.current = false;
 
-        // 2. Load locally cached students for this specific user so the UI updates instantly
-        let userLocalStudents = loadStudents(user.uid);
-        const userLocalSolved = calculateStudentListTotalSolved(userLocalStudents);
+        // 2. Load locally cached students strictly for THIS user
+        let userLocalStudents = loadStudents(user.uid, user.email);
 
-        // Vault check for this user (both UID and clean Email)
-        const vaultStudents = (user.email ? loadFromMultiUserVault(user.email) : null) || loadFromMultiUserVault(user.uid);
-        if (vaultStudents && calculateStudentListTotalSolved(vaultStudents) > userLocalSolved) {
-          userLocalStudents = mergeStudentLists(userLocalStudents, vaultStudents);
-        }
-
-        // Seamless migration: If this user account has 0 solved questions locally,
-        // but the teacher had active solved questions in the session or in guest mode,
-        // merge them so logging in never wipes out questions they just solved!
-        if (calculateStudentListTotalSolved(userLocalStudents) === 0) {
-          const preSolved = calculateStudentListTotalSolved(screenStudentsBeforeLogin);
-          const guestSolved = calculateStudentListTotalSolved(guestStudents);
-          if (preSolved > 0) {
-            userLocalStudents = mergeStudentLists(userLocalStudents, screenStudentsBeforeLogin);
-          } else if (guestSolved > 0) {
-            userLocalStudents = mergeStudentLists(userLocalStudents, guestStudents);
-          }
-        }
-
+        // If local had students, update UI immediately
         if (userLocalStudents && userLocalStudents.length > 0) {
+          currentLoadedUserRef.current = user.uid;
           setStudents(userLocalStudents);
-          saveStudents(userLocalStudents, user.uid);
         }
         setLastCloudSyncedAt(getLocalLastSyncedAt(user.uid));
 
         setIsCloudSyncing(true);
         try {
-          // 3. IMMEDIATELY load from Firestore Cloud (both UID and Email lookup paths)
+          // 3. Load from Firestore Cloud
           const cloudData = await loadUserDataFromCloud(user.uid, user.email);
+          let finalStudents = userLocalStudents;
+
           if (cloudData && Array.isArray(cloudData.students) && cloudData.students.length > 0) {
-            // NEVER DESTRUCTIVELY OVERWRITE! SMART MERGE CLOUD & LOCAL
-            let studentsToSet = mergeStudentLists(userLocalStudents, cloudData.students);
-
-            // Only update old demo names if ZERO questions were solved and demo names exist
-            const isOldDemo = studentsToSet.some(s => s.name === 'Ali Yılmaz');
-            const zeroStats = calculateStudentListTotalSolved(studentsToSet) === 0;
-            if (isOldDemo && zeroStats) {
-              const nonG2 = studentsToSet.filter(s => Number(s.grade) !== 2);
-              const realG2 = DEFAULT_STUDENTS.filter(s => s.grade === 2);
-              studentsToSet = [...nonG2, ...realG2];
-            }
-
-            setStudents(studentsToSet);
-            saveStudents(studentsToSet, user.uid);
-            saveToMultiUserVault(user.uid, studentsToSet, { userId: user.uid, userEmail: user.email || undefined });
-            if (user.email) {
-              saveToMultiUserVault(user.email.toLowerCase(), studentsToSet, { userId: user.uid, userEmail: user.email });
-            }
+            finalStudents = deduplicateStudents(cloudData.students, user.email);
 
             if (cloudData.counters) {
-              setCountersData(cloudData.counters);
-              saveCounters(cloudData.counters);
+              const cleanedCounters = sanitizeCountersForUser(cloudData.counters, user.email);
+              setCountersData(cleanedCounters);
+              saveCounters(cleanedCounters);
               try {
-                localStorage.setItem(`olcico_class_counters_user_${user.uid}`, JSON.stringify(cloudData.counters));
+                localStorage.setItem(`olcico_class_counters_user_${user.uid}`, JSON.stringify(cleanedCounters));
               } catch {}
             }
             if (cloudData.selectedStudentIds && Array.isArray(cloudData.selectedStudentIds)) {
               setSelectedStudentIds(cloudData.selectedStudentIds);
             }
-            // 4. Ödev Akvaryumu Verilerini Akıllı Birleştir (Smart Merge - Sıfırlanma Önleyici)
-            const localHw = loadHomeworkData(user.uid);
-            const remoteHw = cloudData.homeworkData || {};
-            const mergedHw = mergeHomeworkData(localHw, remoteHw);
-            saveHomeworkData(mergedHw, user.uid);
-
-            const localTotal = calculateTotalHomework(localHw);
-            const remoteTotal = calculateTotalHomework(remoteHw);
-            const cloudSolved = calculateStudentListTotalSolved(cloudData.students);
-            const mergedSolved = calculateStudentListTotalSolved(studentsToSet);
-
-            if (localTotal > remoteTotal || !cloudData.homeworkData || mergedSolved > cloudSolved) {
-              saveUserDataToCloud(user.uid, studentsToSet, cloudData.counters || countersData, cloudData.selectedStudentIds, user.email, mergedHw, true).catch(() => {});
+            if (cloudData.homeworkData) {
+              const localHw = loadHomeworkData(user.uid, user.email);
+              const cleanedCloudHw = sanitizeHomeworkForUser(cloudData.homeworkData, user.email);
+              const mergedHw = mergeHomeworkData(localHw, cleanedCloudHw);
+              saveHomeworkData(mergedHw, user.uid, user.email);
             }
             if (cloudData.lastSyncedAt) {
               setLastCloudSyncedAt(cloudData.lastSyncedAt);
             }
-            setActivityToast(`Google Hesabı Bağlandı (${user.displayName || user.email})! Bilgileriniz buluttan yüklendi. ☁️`);
-            setTimeout(() => setActivityToast(null), 3500);
-          } else {
-            // First time cloud user for this account:
-            // Check if userLocalStudents or legacy backup or vault on this machine has real students
-            let studentsToSave = userLocalStudents;
-            const recovered = recoverLegacyOrBackupStudents(user.uid, user.email);
-            if (recovered && recovered.length > 0) {
-              studentsToSave = mergeStudentLists(studentsToSave, recovered);
-            }
-            if (!studentsToSave || studentsToSave.length === 0) {
-              studentsToSave = DEFAULT_STUDENTS;
-            }
-            setStudents(studentsToSave);
-            saveStudents(studentsToSave, user.uid);
-            saveToMultiUserVault(user.uid, studentsToSave, { userId: user.uid, userEmail: user.email || undefined });
-            if (user.email) {
-              saveToMultiUserVault(user.email.toLowerCase(), studentsToSave, { userId: user.uid, userEmail: user.email });
-            }
-
-            const localHw = loadHomeworkData(user.uid);
-            const initialSyncTime = await saveUserDataToCloud(user.uid, studentsToSave, countersData, selectedStudentIds, user.email, localHw, true);
-            setLastCloudSyncedAt(initialSyncTime);
-            setActivityToast(`Google Hesabı Bağlandı (${user.displayName || user.email})! Öğrenci alanınız buluta eşitlendi. ☁️`);
-            setTimeout(() => setActivityToast(null), 3500);
           }
+
+          if (!finalStudents || finalStudents.length === 0) {
+            finalStudents = getDefaultStudentsForUser(user.email);
+          }
+
+          currentLoadedUserRef.current = user.uid;
+          setStudents(finalStudents);
+          saveStudents(finalStudents, user.uid);
+          saveToMultiUserVault(user.uid, finalStudents, { userId: user.uid, userEmail: user.email || undefined });
+          if (user.email) {
+            saveToMultiUserVault(user.email.toLowerCase(), finalStudents, { userId: user.uid, userEmail: user.email });
+          }
+
+          setActivityToast(`Google Hesabı Bağlandı (${user.displayName || user.email})! Bilgileriniz başarıyla yüklendi. ☁️`);
+          setTimeout(() => setActivityToast(null), 3500);
         } catch (err: any) {
           console.error('Cloud auto-sync error on login:', err);
-          // If cloud sync has an error, fallback to local recovered students so user never sees lost data
-          const recovered = recoverLegacyOrBackupStudents(user.uid, user.email);
-          if (recovered && recovered.length > 0) {
-            setStudents(recovered);
-            setActivityToast('Kayıtlı öğrencileriniz cihaz yedeğinden başarıyla yüklendi! 📥');
-            setTimeout(() => setActivityToast(null), 4000);
+          currentLoadedUserRef.current = user.uid;
+          if (userLocalStudents && userLocalStudents.length > 0) {
+            setStudents(userLocalStudents);
           }
         } finally {
           setIsCloudSyncing(false);
@@ -3304,11 +3270,14 @@ export default function App() {
         }
       } else {
         // User logged out: switch store to guest
-        setActiveStoreUserId(null);
-        setActiveStoreHomeworkUserId(null);
+        setActiveStoreUser(null, null);
+        setActiveStoreHomeworkUser(null, null);
+        setActiveCounterEmail(null);
         isInitialCloudSyncDone.current = false;
-        const guestStudents = loadStudents(null);
+        currentLoadedUserRef.current = null;
+        const guestStudents = loadStudents(null, null);
         setStudents(guestStudents);
+        setCountersData(loadCounters(null));
         setSelectedStudentIds([null, null, null]);
         setLastCloudSyncedAt(null);
       }
@@ -3363,7 +3332,7 @@ export default function App() {
     const sList = updatedStudents || students;
     const cData = updatedCounters || countersData;
     const selIds = updatedSelectedIds || selectedStudentIds;
-    const hwData = loadHomeworkData(targetUid);
+    const hwData = loadHomeworkData(targetUid, email);
 
     if (syncTimeoutRef.current) {
       clearTimeout(syncTimeoutRef.current);
@@ -3407,7 +3376,7 @@ export default function App() {
     }
     setIsCloudSyncing(true);
     try {
-      const hwData = loadHomeworkData(currentUser.uid);
+      const hwData = loadHomeworkData(currentUser.uid, currentUser.email);
       const syncTime = await saveUserDataToCloud(currentUser.uid, students, countersData, selectedStudentIds, currentUser.email, hwData, true);
       setLastCloudSyncedAt(syncTime);
       setActivityToast('Buluta başarıyla yedeklendi! ☁️');
@@ -3436,9 +3405,9 @@ export default function App() {
           saveStudents(cloudData.students, currentUser.uid);
         }
         if (cloudData.homeworkData && Object.keys(cloudData.homeworkData).length > 0) {
-          const currentLocal = loadHomeworkData(currentUser.uid);
+          const currentLocal = loadHomeworkData(currentUser.uid, currentUser.email);
           const mergedHw = mergeHomeworkData(currentLocal, cloudData.homeworkData);
-          saveHomeworkData(mergedHw, currentUser.uid);
+          saveHomeworkData(mergedHw, currentUser.uid, currentUser.email);
         }
         if (cloudData.counters) {
           setCountersData(cloudData.counters);
@@ -3468,7 +3437,7 @@ export default function App() {
     }
   };
 
-  // Manual Student Recovery Handler (Searches cloud, legacy, vault, and backup storage for active user)
+  // Manual Student Recovery Handler (Searches cloud, legacy, vault, and backup storage strictly for active user)
   const handleManualRecovery = async () => {
     setIsCloudSyncing(true);
     try {
@@ -3478,34 +3447,40 @@ export default function App() {
       if (currentUser) {
         const cloudData = await loadUserDataFromCloud(currentUser.uid, currentUser.email);
         if (cloudData && Array.isArray(cloudData.students) && cloudData.students.length > 0) {
-          combinedStudents = mergeStudentLists(combinedStudents, cloudData.students);
+          const cleanedCloud = sanitizeStudentsForUser(cloudData.students, currentUser.email);
+          combinedStudents = mergeStudentLists(combinedStudents, cleanedCloud);
         }
       }
 
-      // 2. Recover from vault & local backup slots for active user/email
+      // 2. Recover from vault & local backup slots strictly for active user/email
       const recoveredLocal = recoverLegacyOrBackupStudents(currentUser?.uid, currentUser?.email);
       if (recoveredLocal && recoveredLocal.length > 0) {
-        combinedStudents = mergeStudentLists(combinedStudents, recoveredLocal);
+        const cleanedLocal = sanitizeStudentsForUser(recoveredLocal, currentUser?.email);
+        combinedStudents = mergeStudentLists(combinedStudents, cleanedLocal);
       }
 
-      // 3. Also check multi-user vault explicitly
+      // 3. Also check multi-user vault explicitly for this user only
       if (currentUser?.uid) {
         const fromVaultUid = loadFromMultiUserVault(currentUser.uid);
         if (fromVaultUid && fromVaultUid.length > 0) {
-          combinedStudents = mergeStudentLists(combinedStudents, fromVaultUid);
+          const cleanedVaultUid = sanitizeStudentsForUser(fromVaultUid, currentUser.email);
+          combinedStudents = mergeStudentLists(combinedStudents, cleanedVaultUid);
         }
       }
       if (currentUser?.email) {
         const fromVaultEmail = loadFromMultiUserVault(currentUser.email);
         if (fromVaultEmail && fromVaultEmail.length > 0) {
-          combinedStudents = mergeStudentLists(combinedStudents, fromVaultEmail);
+          const cleanedVaultEmail = sanitizeStudentsForUser(fromVaultEmail, currentUser.email);
+          combinedStudents = mergeStudentLists(combinedStudents, cleanedVaultEmail);
         }
       }
 
+      combinedStudents = sanitizeStudentsForUser(combinedStudents, currentUser?.email);
       const totalSolved = calculateStudentListTotalSolved(combinedStudents);
-      const recoveredHw = recoverAllPossibleHomeworkData(currentUser?.uid);
+      const recoveredHw = recoverAllPossibleHomeworkData(currentUser?.uid, currentUser?.email);
 
       if (combinedStudents.length > 0 && (!isDefaultSampleList(combinedStudents) || totalSolved > 0)) {
+        currentLoadedUserRef.current = currentUser?.uid || null;
         setStudents(combinedStudents);
         saveStudents(combinedStudents, currentUser?.uid);
         if (currentUser?.uid) {
@@ -3538,8 +3513,32 @@ export default function App() {
 
   // Auto-persist students state changes to localStorage for active user
   useEffect(() => {
-    saveStudents(students, currentUser?.uid);
+    const targetUid = currentUser?.uid || null;
+    // CRITICAL: Do not write stale students if the active user's data is still loading!
+    if (currentLoadedUserRef.current !== targetUid) {
+      return;
+    }
+    saveStudents(students, targetUid);
   }, [students, currentUser]);
+
+  // Her sabah saat 10:00'da otomatik bulut & yerel yedekleme sistemi
+  useEffect(() => {
+    const stopScheduler = startDailyAutoBackupScheduler(
+      () => ({
+        user: currentUser,
+        students,
+        counters: countersData,
+        selectedStudentIds
+      }),
+      (msg) => {
+        setActivityToast(msg);
+        setTimeout(() => setActivityToast(null), 4000);
+      }
+    );
+    return () => {
+      stopScheduler();
+    };
+  }, [currentUser, students, countersData, selectedStudentIds]);
 
   // Clean up selected student slots only if a student was completely deleted from roster
   useEffect(() => {
@@ -10392,7 +10391,13 @@ export default function App() {
           setShowStatsModal(true);
         }}
         students={students}
-        onStudentsUpdated={(updated) => setStudents(updated)}
+        onStudentsUpdated={(updated) => {
+          setStudents(updated);
+          saveStudents(updated, currentUser?.uid);
+          if (currentUser?.uid) {
+            triggerImmediateCloudSync(updated, countersData, selectedStudentIds);
+          }
+        }}
         currentGrade={rosterModalGrade || statsModalGrade || activeGradeNumber}
         playMp3={playMp3}
         currentUser={currentUser}
@@ -11849,6 +11854,12 @@ export default function App() {
             setRosterModalGrade(grade || selectedGrade || 2);
             setShowStudentRosterModal(true);
           }}
+          onQuestionAnswered={(isCorrect, pIdx = 0) => {
+            handleUniversalActivityAnswer('saat_zaman', isCorrect, pIdx, 'otherGames');
+          }}
+          onGameCompleted={(winnerIdx, pCount) => {
+            handleUniversalGameCompleted(winnerIdx, pCount);
+          }}
         />
       )}
 
@@ -11886,6 +11897,12 @@ export default function App() {
           onOpenRosterModal={(grade) => {
             setRosterModalGrade(grade || selectedGrade || 2);
             setShowStudentRosterModal(true);
+          }}
+          onQuestionAnswered={(isCorrect, pIdx = 0) => {
+            handleUniversalActivityAnswer('market_kasasi', isCorrect, pIdx, 'otherGames');
+          }}
+          onGameCompleted={(winnerIdx, pCount) => {
+            handleUniversalGameCompleted(winnerIdx, pCount);
           }}
         />
       )}
@@ -11925,6 +11942,12 @@ export default function App() {
             setRosterModalGrade(grade || selectedGrade || 2);
             setShowStudentRosterModal(true);
           }}
+          onQuestionAnswered={(isCorrect, pIdx = 0) => {
+            handleUniversalActivityAnswer('kesir_duvari_pizza', isCorrect, pIdx, 'otherGames');
+          }}
+          onGameCompleted={(winnerIdx, pCount) => {
+            handleUniversalGameCompleted(winnerIdx, pCount);
+          }}
         />
       )}
 
@@ -11963,6 +11986,12 @@ export default function App() {
             setRosterModalGrade(grade || selectedGrade || 2);
             setShowStudentRosterModal(true);
           }}
+          onQuestionAnswered={(isCorrect, pIdx = 0) => {
+            handleUniversalActivityAnswer('es_sesli_kelimeler', isCorrect, pIdx, 'otherGames');
+          }}
+          onGameCompleted={(winnerIdx, pCount) => {
+            handleUniversalGameCompleted(winnerIdx, pCount);
+          }}
         />
       )}
 
@@ -12000,6 +12029,12 @@ export default function App() {
           onOpenRosterModal={(grade) => {
             setRosterModalGrade(grade || selectedGrade || 2);
             setShowStudentRosterModal(true);
+          }}
+          onQuestionAnswered={(isCorrect, pIdx = 0) => {
+            handleUniversalActivityAnswer('denge_terazisi', isCorrect, pIdx, 'otherGames');
+          }}
+          onGameCompleted={(winnerIdx, pCount) => {
+            handleUniversalGameCompleted(winnerIdx, pCount);
           }}
         />
       )}

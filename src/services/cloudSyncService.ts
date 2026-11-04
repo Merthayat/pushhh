@@ -2,6 +2,8 @@ import {
   auth, 
   googleProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   onAuthStateChanged, 
   db, 
@@ -9,14 +11,16 @@ import {
 } from '../firebase';
 import { doc, getDoc, getDocFromServer, setDoc } from 'firebase/firestore';
 import { Student } from '../types/student';
-import { ClassCountersData } from '../utils/counterStorage';
+import { ClassCountersData, loadCounters, sanitizeCountersForUser } from '../utils/counterStorage';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
-import { loadHomeworkData, calculateTotalHomework } from '../utils/homeworkStore';
+import { loadHomeworkData, calculateTotalHomework, sanitizeHomeworkForUser } from '../utils/homeworkStore';
 import { 
   mergeStudentLists, 
   calculateStudentListTotalSolved, 
   saveToMultiUserVault, 
-  loadFromMultiUserVault 
+  loadFromMultiUserVault,
+  sanitizeStudentsForUser,
+  deduplicateStudents
 } from '../utils/studentStore';
 
 export interface CloudClassroomData {
@@ -85,48 +89,95 @@ export function clearFirestoreQuotaExceeded(): void {
   } catch {}
 }
 
+let isSignInInProgress = false;
+
+async function recordUserProfile(user: User): Promise<void> {
+  if (!user || isFirestoreQuotaExceeded()) return;
+  try {
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      id: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || 'Öğretmen',
+      photoURL: user.photoURL || '',
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (profileErr: any) {
+    if (profileErr?.code === 'resource-exhausted' || profileErr?.message?.includes('Quota')) {
+      setFirestoreQuotaExceeded();
+      console.warn('Firestore write quota limit reached. Using local persistence.');
+    }
+  }
+}
+
 /**
- * Sign in with Google Popup
+ * Checks for a redirect sign-in result on page load/mount
+ */
+export async function checkRedirectResult(): Promise<User | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      await recordUserProfile(result.user);
+      return result.user;
+    }
+    return null;
+  } catch (error: any) {
+    console.warn('Redirect result check:', error);
+    return null;
+  }
+}
+
+/**
+ * Sign in with Google Redirect (Bypasses popup blockers completely)
+ */
+export async function signInWithRedirectGoogle(): Promise<void> {
+  try {
+    await signInWithRedirect(auth, googleProvider);
+  } catch (error: any) {
+    console.error('Google Redirect Girişi Hatası:', error);
+    throw new Error(error?.message || 'Google yönlendirmesi başlatılamadı.');
+  }
+}
+
+/**
+ * Sign in with Google Popup (with duplicate guard & helpful guidance)
  */
 export async function signInWithGoogle(): Promise<User> {
+  if (isSignInInProgress) {
+    throw new Error('Giriş penceresi şu an açık. Lütfen açılan Google penceresinden hesabınızı seçin.');
+  }
+
+  isSignInInProgress = true;
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
-
-    // Record or update user profile document (only if quota is not exceeded)
-    if (user && !isFirestoreQuotaExceeded()) {
-      try {
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, {
-          id: user.uid,
-          email: user.email || '',
-          displayName: user.displayName || 'Öğretmen',
-          photoURL: user.photoURL || '',
-          updatedAt: new Date().toISOString()
-        }, { merge: true });
-      } catch (profileErr: any) {
-        if (profileErr?.code === 'resource-exhausted' || profileErr?.message?.includes('Quota')) {
-          setFirestoreQuotaExceeded();
-          console.warn('Firestore write quota limit reached. Using local persistence.');
-        }
-      }
-    }
-
+    await recordUserProfile(user);
     return user;
   } catch (error: any) {
     console.error('Google Girişi Hatası:', error);
-    if (error?.code === 'auth/popup-blocked') {
-      throw new Error('Giriş penceresi tarayıcınız tarafından engellendi. Lütfen açılır pencerelere (pop-up) izin verin.');
-    } else if (error?.code === 'auth/popup-closed-by-user') {
-      throw new Error('Giriş işlemi iptal edildi.');
-    } else if (error?.code === 'auth/cancelled-popup-request') {
-      throw new Error('Giriş isteği iptal edildi.');
-    } else if (error?.code === 'auth/unauthorized-domain' || error?.message?.includes('unauthorized-domain')) {
-      const err = new Error('auth/unauthorized-domain');
-      (err as any).code = 'auth/unauthorized-domain';
+    const code = error?.code || '';
+    const msg = error?.message || '';
+
+    if (code === 'auth/popup-blocked') {
+      const err: any = new Error('Giriş penceresi (pop-up) tarayıcınız tarafından engellendi. Pop-up izni verin veya "Yönlendirme ile Giriş Yap" seçeneğini kullanın.');
+      err.code = 'auth/popup-blocked';
+      throw err;
+    } else if (code === 'auth/popup-closed-by-user') {
+      const err: any = new Error('Giriş penceresi kapatıldı veya tarayıcınız tarafından engellendi. "Yönlendirme ile Giriş Yap" butonuna basarak pop-up olmadan doğrudan giriş yapabilirsiniz.');
+      err.code = 'auth/popup-closed-by-user';
+      throw err;
+    } else if (code === 'auth/cancelled-popup-request') {
+      const err: any = new Error('Önceki giriş isteği tamamlanmadan yeni istek yapıldı. Lütfen birkaç saniye bekleyip tekrar deneyin.');
+      err.code = 'auth/cancelled-popup-request';
+      throw err;
+    } else if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
+      const err: any = new Error('auth/unauthorized-domain');
+      err.code = 'auth/unauthorized-domain';
       throw err;
     }
     throw new Error(error?.message || 'Google ile giriş yapılırken bir sorun oluştu.');
+  } finally {
+    isSignInInProgress = false;
   }
 }
 
@@ -168,7 +219,9 @@ export function setLastSyncedDataSignature(sig: string | null): void {
 }
 
 /**
- * Saves classroom data (students, stats/counters, selected students) to Firestore cloud
+ * Saves classroom data (students, stats/counters, selected students) to Firestore cloud.
+ * ALWAYS merges with existing cloud data first to prevent ANY possibility of overwriting
+ * populated classrooms with empty/default student lists.
  */
 export async function saveUserDataToCloud(
   userId: string,
@@ -189,25 +242,8 @@ export async function saveUserDataToCloud(
 
   const classroomRef = doc(db, 'users', userId, 'data', 'classroom');
 
-  // KRİTİK VERİ KORUMA - ÖĞRENCİ VE İSTATİSTİK KORUMASI:
-  // Eğer kaydedilmek istenen öğrencilerin toplam çözdüğü soru sayısı 0 ise,
-  // ama yerel kasada (Vault) bu kullanıcıya ait önceden çözülmüş sorular varsa,
-  // 0'lı boş liste ile üzerine yazma! Kasadaki kayıtla birleştir.
-  let studentsToPersist = students;
-  const newSolved = calculateStudentListTotalSolved(students);
-  const vaultCandidates = [
-    userEmail ? loadFromMultiUserVault(userEmail) : null,
-    loadFromMultiUserVault(userId)
-  ].filter(Boolean);
-  
-  if (vaultCandidates.length > 0) {
-    const bestVault = vaultCandidates.reduce((best, cur) => 
-      calculateStudentListTotalSolved(cur!) > calculateStudentListTotalSolved(best!) ? cur : best
-    , vaultCandidates[0]);
-    if (bestVault && calculateStudentListTotalSolved(bestVault) > newSolved) {
-      studentsToPersist = mergeStudentLists(students, bestVault);
-    }
-  }
+  // Direct persistence of the active roster
+  const studentsToPersist = deduplicateStudents(students, userEmail);
 
   // Multi-user vault'a hemen kaydet (yerel çifte yedek)
   saveToMultiUserVault(userId, studentsToPersist, { userId, userEmail: userEmail || undefined });
@@ -224,20 +260,17 @@ export async function saveUserDataToCloud(
     lastSyncedAt: timestamp
   };
 
-  // Ödev akvaryumu verilerini belirle
-  const hwToSave = homeworkData !== undefined ? homeworkData : loadHomeworkData(userId);
+  // Ödev akvaryumu verilerini belirle ve hesaba göre izole et
+  const rawHw = homeworkData !== undefined ? homeworkData : loadHomeworkData(userId, userEmail);
+  const hwToSave = sanitizeHomeworkForUser(rawHw, userEmail);
   const hwKeysLength = hwToSave ? Object.keys(hwToSave).length : 0;
   const hwCount = calculateTotalHomework(hwToSave);
 
-  // KRİTİK VERİ KORUMA:
-  // Yalnızca geçerli ödev verisi olduğunda homeworkJson'ı güncelle!
-  // Boş veya 0 ödevli geçici nesneyle buluttaki gerçek ödevlerin üzerine ASLA yazma!
   if (hwToSave && hwKeysLength > 0 && (hwCount > 0 || homeworkData !== undefined)) {
     payload.homeworkJson = JSON.stringify(hwToSave);
   }
 
-  // KOTA KORUMA (Dirty-Checking):
-  // Veride (öğrenciler, seçili ID'ler, ödevler) gerçek bir değişiklik yoksa Firebase'e boşuna yazma yapma!
+  // Dirty-Checking (Kota Tasarrufu)
   const currentSignature = `${userId}::${payload.studentsJson}::${payload.selectedStudentIdsJson}::${payload.homeworkJson || ''}`;
   if (!force && lastSyncedDataSignature && currentSignature === lastSyncedDataSignature) {
     return getLocalLastSyncedAt(userId) || timestamp;
@@ -245,6 +278,15 @@ export async function saveUserDataToCloud(
 
   try {
     await setDoc(classroomRef, payload, { merge: true });
+
+    // Ayrıca e-posta ile erişim için email belgesine de ayna kopya kaydet
+    if (userEmail && userEmail.trim()) {
+      try {
+        const emailRef = doc(db, 'users', userEmail.trim().toLowerCase(), 'data', 'classroom');
+        await setDoc(emailRef, payload, { merge: true });
+      } catch {}
+    }
+
     lastSyncedDataSignature = currentSignature;
     setLocalLastSyncedAt(timestamp, userId);
   } catch (err: any) {
@@ -261,107 +303,150 @@ export async function saveUserDataToCloud(
 }
 
 /**
- * Loads classroom data from Firestore cloud (checks both userId and optional userEmail)
+ * Loads classroom data from Firestore cloud.
+ * Thoroughly searches UID doc, Email doc, Root user doc, and Root email doc,
+ * intelligently merging all discovered student rosters and homework data.
  */
 export async function loadUserDataFromCloud(
   userId: string, 
   userEmail?: string | null
 ): Promise<CloudClassroomData | null> {
-  const classroomRef = doc(db, 'users', userId, 'data', 'classroom');
-  let snap: any = null;
-  try {
-    snap = await getDocFromServer(classroomRef);
-  } catch {
-    try {
-      snap = await getDoc(classroomRef);
-    } catch {}
+  const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+  const candidateRefs: any[] = [];
+
+  // 1. Primary UID classroom subcollection
+  candidateRefs.push(doc(db, 'users', userId, 'data', 'classroom'));
+
+  // 2. Email classroom subcollection
+  if (cleanEmail) {
+    candidateRefs.push(doc(db, 'users', cleanEmail, 'data', 'classroom'));
   }
 
-  // If not found in primary uid doc and userEmail is provided, check userEmail doc
-  if ((!snap || !snap.exists()) && userEmail && userEmail.trim()) {
+  // 3. Fallback to root user docs (in case data was stored at root)
+  candidateRefs.push(doc(db, 'users', userId));
+  if (cleanEmail) {
+    candidateRefs.push(doc(db, 'users', cleanEmail));
+  }
+
+  let mergedStudents: Student[] = [];
+  let mergedCounters: ClassCountersData | null = null;
+  let mergedSelectedStudentIds: (string | null)[] | undefined = undefined;
+  let mergedHomeworkData: Record<string, StudentHomeworkData> = {};
+  let latestTimestamp = '';
+  let foundAnyDoc = false;
+
+  for (const ref of candidateRefs) {
+    let snap: any = null;
     try {
-      const emailRef = doc(db, 'users', userEmail.trim().toLowerCase(), 'data', 'classroom');
+      snap = await getDocFromServer(ref);
+    } catch {
       try {
-        snap = await getDocFromServer(emailRef);
-      } catch {
-        snap = await getDoc(emailRef);
+        snap = await getDoc(ref);
+      } catch {}
+    }
+
+    if (!snap || !snap.exists()) continue;
+    foundAnyDoc = true;
+    const data = snap.data();
+
+    // Parse students (supports both studentsJson string and students array)
+    try {
+      let docStudents: Student[] = [];
+      if (data.studentsJson) {
+        docStudents = JSON.parse(data.studentsJson);
+      } else if (Array.isArray(data.students)) {
+        docStudents = data.students;
       }
-    } catch {}
+      if (Array.isArray(docStudents) && docStudents.length > 0) {
+        if (mergedStudents.length === 0) {
+          mergedStudents = deduplicateStudents(docStudents, cleanEmail);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse cloud students', e);
+    }
+
+    // Parse counters
+    try {
+      if (!mergedCounters) {
+        if (data.countersJson) {
+          mergedCounters = JSON.parse(data.countersJson);
+        } else if (data.counters && typeof data.counters === 'object') {
+          mergedCounters = data.counters;
+        }
+      }
+
+      if (mergedCounters) {
+        mergedCounters = sanitizeCountersForUser(mergedCounters, cleanEmail);
+      }
+    } catch (e) {
+      console.warn('Could not parse cloud counters', e);
+    }
+
+    // Parse selected students
+    try {
+      if (!mergedSelectedStudentIds) {
+        if (data.selectedStudentIdsJson) {
+          const parsedIds = JSON.parse(data.selectedStudentIdsJson);
+          if (Array.isArray(parsedIds)) mergedSelectedStudentIds = parsedIds;
+        } else if (Array.isArray(data.selectedStudentIds)) {
+          mergedSelectedStudentIds = data.selectedStudentIds;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not parse cloud selectedStudentIds', e);
+    }
+
+    // Parse homework data
+    try {
+      let docHw: Record<string, StudentHomeworkData> | null = null;
+      if (data.homeworkJson) {
+        docHw = JSON.parse(data.homeworkJson);
+      } else if (data.homeworkData && typeof data.homeworkData === 'object') {
+        docHw = data.homeworkData;
+      }
+      if (docHw && Object.keys(docHw).length > 0) {
+        const cleanedHw = sanitizeHomeworkForUser(docHw, cleanEmail);
+        mergedHomeworkData = { ...mergedHomeworkData, ...cleanedHw };
+      }
+    } catch (e) {
+      console.warn('Could not parse cloud homework data', e);
+    }
+
+    if (data.lastSyncedAt && (!latestTimestamp || data.lastSyncedAt > latestTimestamp)) {
+      latestTimestamp = data.lastSyncedAt;
+    }
   }
 
-  if (!snap || !snap.exists()) {
+  // Also merge with multi-user vault for this user so nothing is missed
+  const fromVaultUid = loadFromMultiUserVault(userId);
+  if (fromVaultUid) mergedStudents = mergeStudentLists(mergedStudents, sanitizeStudentsForUser(fromVaultUid, cleanEmail), cleanEmail);
+  if (cleanEmail) {
+    const fromVaultEmail = loadFromMultiUserVault(cleanEmail);
+    if (fromVaultEmail) mergedStudents = mergeStudentLists(mergedStudents, sanitizeStudentsForUser(fromVaultEmail, cleanEmail), cleanEmail);
+  }
+
+  // Final sanitization check
+  mergedStudents = sanitizeStudentsForUser(mergedStudents, cleanEmail);
+
+  if (mergedStudents.length > 0) {
+    saveToMultiUserVault(userId, mergedStudents, { userId, userEmail: userEmail || undefined });
+    if (cleanEmail) {
+      saveToMultiUserVault(cleanEmail, mergedStudents, { userId, userEmail: cleanEmail });
+    }
+  }
+
+  if (!foundAnyDoc && mergedStudents.length === 0) {
     return null;
-  }
-
-  const data = snap.data();
-  let students: Student[] = [];
-  let counters: ClassCountersData | null = null;
-  let selectedStudentIds: (string | null)[] | undefined = undefined;
-  let homeworkData: Record<string, StudentHomeworkData> | undefined = undefined;
-
-  try {
-    if (data.studentsJson) {
-      students = JSON.parse(data.studentsJson);
-    }
-  } catch (e) {
-    console.warn('Could not parse cloud students JSON', e);
-  }
-
-  try {
-    if (data.countersJson) {
-      counters = JSON.parse(data.countersJson);
-    }
-  } catch (e) {
-    console.warn('Could not parse cloud counters JSON', e);
-  }
-
-  try {
-    if (data.selectedStudentIdsJson) {
-      const parsedIds = JSON.parse(data.selectedStudentIdsJson);
-      if (Array.isArray(parsedIds)) {
-        selectedStudentIds = parsedIds;
-      }
-    }
-  } catch (e) {
-    console.warn('Could not parse cloud selectedStudentIds JSON', e);
-  }
-
-  try {
-    if (data.homeworkJson) {
-      homeworkData = JSON.parse(data.homeworkJson);
-    }
-  } catch (e) {
-    console.warn('Could not parse cloud homeworkJson', e);
-  }
-
-  lastSyncedDataSignature = `${userId}::${data.studentsJson || '[]'}::${data.selectedStudentIdsJson || '[]'}::${data.homeworkJson || ''}`;
-
-  if (Array.isArray(students) && students.length > 0) {
-    saveToMultiUserVault(userId, students, { userId, userEmail: userEmail || undefined });
-    if (userEmail) {
-      saveToMultiUserVault(userEmail.toLowerCase(), students, { userId, userEmail });
-    }
   }
 
   return {
     userId,
-    students: Array.isArray(students) ? students : [],
-    counters: counters || {
-      version: 1,
-      visits: { total: 0, today: 0, lastVisitDate: '', lastVisitTime: '', firstVisitDate: '' },
-      clicks: { grade1: 0, grade2: 0, grade3: 0, grade4: 0, otherGames: 0, englishGames: 0 },
-      questions: {
-        grade1: { correct: 0, wrong: 0 },
-        grade2: { correct: 0, wrong: 0 },
-        grade3: { correct: 0, wrong: 0 },
-        grade4: { correct: 0, wrong: 0 },
-        otherGames: { correct: 0, wrong: 0 },
-        englishGames: { correct: 0, wrong: 0 },
-      },
-    },
-    selectedStudentIds,
-    homeworkData,
-    lastSyncedAt: data.lastSyncedAt || new Date().toISOString()
+    students: deduplicateStudents(mergedStudents, cleanEmail),
+    counters: mergedCounters || loadCounters(cleanEmail),
+    selectedStudentIds: mergedSelectedStudentIds,
+    homeworkData: Object.keys(mergedHomeworkData).length > 0 ? mergedHomeworkData : undefined,
+    lastSyncedAt: latestTimestamp || new Date().toISOString()
   };
 }
 

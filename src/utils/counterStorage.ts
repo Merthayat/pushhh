@@ -78,12 +78,62 @@ function getFormattedNow(): string {
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
-export function loadCounters(): ClassCountersData {
+let activeCounterEmail: string | null = null;
+
+export function setActiveCounterEmail(email?: string | null): void {
+  activeCounterEmail = email ? email.trim().toLowerCase() : null;
+}
+
+export function getActiveCounterEmail(): string | null {
+  return activeCounterEmail;
+}
+
+export function loadCounters(userEmail?: string | null): ClassCountersData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...INITIAL_COUNTERS };
-    const parsed = JSON.parse(raw);
+    const parsed = raw ? JSON.parse(raw) : null;
     const today = getTodayString();
+    const email = (userEmail || activeCounterEmail || '').trim().toLowerCase();
+
+    const isMushat = email === 'mushat29.mk@gmail.com';
+    const isBanu = email === 'banuhyt@gmail.com';
+
+    // Baseline definitions (Yalnızca gerçek hesap istatistikleri)
+    let g1Baseline = { correct: 0, wrong: 0 };
+    let g2Baseline = { correct: 0, wrong: 0 };
+    let g3Baseline = { correct: 0, wrong: 0 };
+
+    if (isMushat) {
+      g3Baseline = { correct: 490, wrong: 224 };
+      g1Baseline = { correct: 4, wrong: 10 };
+    } else if (isBanu) {
+      g2Baseline = { correct: 42, wrong: 0 };
+    }
+
+    const isOlcayto = email.includes('olcayto');
+
+    // Calculate total questions in parsed
+    let parsedTotalQuestions = 0;
+    if (parsed?.questions) {
+      Object.values(parsed.questions).forEach((q: any) => {
+        parsedTotalQuestions += (q?.correct || 0) + (q?.wrong || 0);
+      });
+    }
+
+    // Olcayto hoca istatistikleri sıfırladığında hayalet 9208 veya eski yapay sayılar otomatik temizlenir
+    const shouldResetOlcaytoQuestions = isOlcayto && (parsedTotalQuestions > 1000 || parsedTotalQuestions === 9208);
+
+    if (!parsed) {
+      return {
+        ...INITIAL_COUNTERS,
+        questions: {
+          ...INITIAL_COUNTERS.questions,
+          grade1: g1Baseline,
+          grade2: g2Baseline,
+          grade3: g3Baseline,
+        }
+      };
+    }
 
     // Check date rollover: if last visit was not today, today's visit count should reset to 0
     let todayVisits = typeof parsed.visits?.today === 'number' ? parsed.visits.today : 0;
@@ -91,7 +141,37 @@ export function loadCounters(): ClassCountersData {
       todayVisits = 0;
     }
 
-    return {
+    const qGrade1 = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: Math.max(parsed.questions?.grade1?.correct || 0, g1Baseline.correct),
+      wrong: Math.max(parsed.questions?.grade1?.wrong || 0, g1Baseline.wrong)
+    };
+
+    const qGrade2 = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: Math.max(parsed.questions?.grade2?.correct || 0, g2Baseline.correct),
+      wrong: Math.max(parsed.questions?.grade2?.wrong || 0, g2Baseline.wrong)
+    };
+
+    const qGrade3 = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: Math.max(parsed.questions?.grade3?.correct || 0, g3Baseline.correct),
+      wrong: Math.max(parsed.questions?.grade3?.wrong || 0, g3Baseline.wrong)
+    };
+
+    const qGrade4 = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: parsed.questions?.grade4?.correct || 0,
+      wrong: parsed.questions?.grade4?.wrong || 0
+    };
+
+    const qOther = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: parsed.questions?.otherGames?.correct || 0,
+      wrong: parsed.questions?.otherGames?.wrong || 0
+    };
+
+    const qEnglish = shouldResetOlcaytoQuestions ? { correct: 0, wrong: 0 } : {
+      correct: parsed.questions?.englishGames?.correct || 0,
+      wrong: parsed.questions?.englishGames?.wrong || 0
+    };
+
+    const result: ClassCountersData = {
       version: 1,
       visits: {
         total: Math.max(parsed.visits?.total || 0, 0),
@@ -109,17 +189,51 @@ export function loadCounters(): ClassCountersData {
         englishGames: parsed.clicks?.englishGames || 0,
       },
       questions: {
-        grade1: { correct: parsed.questions?.grade1?.correct || 0, wrong: parsed.questions?.grade1?.wrong || 0 },
-        grade2: { correct: parsed.questions?.grade2?.correct || 0, wrong: parsed.questions?.grade2?.wrong || 0 },
-        grade3: { correct: parsed.questions?.grade3?.correct || 0, wrong: parsed.questions?.grade3?.wrong || 0 },
-        grade4: { correct: parsed.questions?.grade4?.correct || 0, wrong: parsed.questions?.grade4?.wrong || 0 },
-        otherGames: { correct: parsed.questions?.otherGames?.correct || 0, wrong: parsed.questions?.otherGames?.wrong || 0 },
-        englishGames: { correct: parsed.questions?.englishGames?.correct || 0, wrong: parsed.questions?.englishGames?.wrong || 0 },
+        grade1: qGrade1,
+        grade2: qGrade2,
+        grade3: qGrade3,
+        grade4: qGrade4,
+        otherGames: qOther,
+        englishGames: qEnglish,
       },
     };
+
+    if (shouldResetOlcaytoQuestions) {
+      saveCounters(result);
+    }
+
+    return result;
   } catch {
     return { ...INITIAL_COUNTERS };
   }
+}
+
+export function sanitizeCountersForUser(counters: ClassCountersData, userEmail?: string | null): ClassCountersData {
+  if (!counters) return INITIAL_COUNTERS;
+  const email = (userEmail || activeCounterEmail || '').trim().toLowerCase();
+  const isOlcayto = email.includes('olcayto');
+  if (isOlcayto) {
+    let totalQuestions = 0;
+    Object.values(counters.questions || {}).forEach((q: any) => {
+      totalQuestions += (q?.correct || 0) + (q?.wrong || 0);
+    });
+    if (totalQuestions > 1000 || totalQuestions === 9208) {
+      const cleaned: ClassCountersData = {
+        ...counters,
+        questions: {
+          grade1: { correct: 0, wrong: 0 },
+          grade2: { correct: 0, wrong: 0 },
+          grade3: { correct: 0, wrong: 0 },
+          grade4: { correct: 0, wrong: 0 },
+          otherGames: { correct: 0, wrong: 0 },
+          englishGames: { correct: 0, wrong: 0 },
+        }
+      };
+      saveCounters(cleaned);
+      return cleaned;
+    }
+  }
+  return counters;
 }
 
 export function saveCounters(data: ClassCountersData): void {

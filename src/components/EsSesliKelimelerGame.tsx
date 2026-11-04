@@ -32,6 +32,8 @@ interface EsSesliKelimelerGameProps {
   onSelectStudent?: (id: string | null) => void;
   onSelectStudentForPlayer?: (pIdx: number, id: string | null) => void;
   onOpenRosterModal?: (grade?: number) => void;
+  onQuestionAnswered?: (isCorrect: boolean, pIdx?: number) => void;
+  onGameCompleted?: (winnerIdx: number | null, pCount?: number) => void;
 }
 
 interface SesteşItem {
@@ -214,7 +216,9 @@ export const EsSesliKelimelerGame: React.FC<EsSesliKelimelerGameProps> = ({
   selectedStudentId,
   onSelectStudent,
   onSelectStudentForPlayer,
-  onOpenRosterModal
+  onOpenRosterModal,
+  onQuestionAnswered,
+  onGameCompleted
 }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [selectedWord, setSelectedWord] = useState<SesteşItem>(SESTES_POOL[0]);
@@ -279,6 +283,7 @@ export const EsSesliKelimelerGame: React.FC<EsSesliKelimelerGameProps> = ({
     const isBox2Correct = matchedBox2 === 2;
 
     if (isBox1Correct && isBox2Correct) {
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 15);
       setStreak(st => st + 1);
@@ -291,7 +296,10 @@ export const EsSesliKelimelerGame: React.FC<EsSesliKelimelerGameProps> = ({
       } catch {}
 
       if (questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(0, 1);
+        }, 1200);
       } else {
         setTimeout(() => {
           setQuestionCount(q => q + 1);
@@ -299,6 +307,7 @@ export const EsSesliKelimelerGame: React.FC<EsSesliKelimelerGameProps> = ({
         }, 1600);
       }
     } else {
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -306,7 +315,10 @@ export const EsSesliKelimelerGame: React.FC<EsSesliKelimelerGameProps> = ({
       if (playMp3) playMp3('/hata.mp3');
 
       if (newMistakes >= 3 || questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(null, 1);
+        }, 1200);
       }
     }
   };

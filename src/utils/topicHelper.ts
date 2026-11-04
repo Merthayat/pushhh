@@ -54,7 +54,13 @@ const SPECIAL_TOPICS: Record<string, { title: string; desc?: string; icon?: stri
   sayi_basketi: { title: 'Sayı Basketi (Basketbol Düellosu)', desc: 'Sayıları okunuşlarıyla eşleştirip potaya basket atma (1 & 2 Kişilik)', icon: '🏀' },
   onluk_birlik: { title: 'Onluk ve Birlik Modelleri', desc: 'Onluk çubukları ve birlik küpleriyle sayı inşa etme (Sürükle-Bırak)', icon: '🧱' },
   school_life: { title: 'School Life (İngilizce Okul Hayatı)', desc: 'School subjects, classroom objects & daily routines quiz', icon: '🏫' },
-  xox_matematik: { title: 'XOX Matematik & Zeka', desc: 'İki kişilik matematik ve strateji düellosu', icon: '❌' }
+  xox_matematik: { title: 'XOX Matematik & Zeka', desc: 'İki kişilik matematik ve strateji düellosu', icon: '❌' },
+  market_kasasi: { title: 'Bakkal & Market Kasası', desc: 'Paralarımız, alışveriş ve para üstü hesaplama atölyesi', icon: '🛒' },
+  kesir_duvari_pizza: { title: 'Pizza & Kesir Duvarı Atölyesi', desc: 'Yarım, çeyrek, bütün ve birim kesir modelleme', icon: '🍕' },
+  denge_terazisi: { title: 'Eşit Kollu Denge Terazisi', desc: 'Ağırlık ölçüleri (kg/g) ve bilinmeyen kütleyi dengeleme', icon: '⚖️' },
+  saat_zaman: { title: 'İnteraktif Saat & Zaman', desc: 'Analog ve dijital saat okuma (tam, yarım, çeyrek)', icon: '⏰' },
+  gorselli_sudoku: { title: 'Görselli Sudoku (Akıl Oyunu)', desc: '4x4 ve 6x6 sembol ve şekillerle mantık yürütme', icon: '🧩' },
+  es_sesli_kelimeler: { title: 'Eş Sesli Kelimeler Dedektifi', desc: 'Yazılışları aynı, anlamları farklı sözcükleri ayırt etme', icon: '🔍' }
 };
 
 export interface TopicInfo {

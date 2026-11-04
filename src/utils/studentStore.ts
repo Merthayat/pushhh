@@ -27,47 +27,130 @@ export const AVATAR_OPTIONS: AvatarOption[] = [
   { id: 'penguin', emoji: '🐧', label: 'Kutup Pengueni', bg: 'from-slate-700 to-cyan-900', border: 'border-cyan-300' }
 ];
 
-export const DEFAULT_STUDENTS: Student[] = [
-  // 1. SINIF ÖRNEK ÖĞRENCİLERİ
-  { id: 'std_g1_1', name: 'Can Öztürk', avatar: '🦖', avatarBg: 'from-emerald-600 to-teal-700', grade: 1, className: '1-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g1_2', name: 'Elif Şahin', avatar: '🌟', avatarBg: 'from-amber-300 to-yellow-500', grade: 1, className: '1-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g1_3', name: 'Deniz Aydın', avatar: '🐬', avatarBg: 'from-sky-500 to-blue-600', grade: 1, className: '1-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
+import { OLCAYTO_2C_STUDENTS } from '../data/olcayto2cStudents';
+import { MUSHAT_EMAIL, MUSHAT_3C_STUDENTS } from '../data/mushat3cStudents';
+import { BANU_EMAIL, BANU_2A_STUDENTS } from '../data/banu2aStudents';
 
-  // 2. SINIF GERÇEK SINIF LİSTESİ (23 ÖĞRENCİ)
-  { id: 'std_g2_1', name: 'Aybüke', avatar: '🐬', avatarBg: 'from-sky-500 to-blue-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_2', name: 'Betül Sare', avatar: '🌟', avatarBg: 'from-amber-300 to-yellow-500', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_3', name: 'Buğlem', avatar: '🦄', avatarBg: 'from-pink-500 to-purple-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_4', name: 'Çınar Eymen', avatar: '🦁', avatarBg: 'from-amber-500 to-yellow-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_5', name: 'Derin Defne', avatar: '🐰', avatarBg: 'from-rose-400 to-pink-500', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_6', name: 'Efekan', avatar: '🚀', avatarBg: 'from-blue-600 to-indigo-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_7', name: 'Elif Su', avatar: '🎨', avatarBg: 'from-fuchsia-500 to-purple-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_8', name: 'Eslem', avatar: '👑', avatarBg: 'from-yellow-400 to-amber-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_9', name: 'Eymen', avatar: '🐯', avatarBg: 'from-amber-600 to-orange-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_10', name: 'Güneş', avatar: '☀️', avatarBg: 'from-amber-400 to-yellow-500', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_11', name: 'Harun', avatar: '⚡', avatarBg: 'from-yellow-500 to-orange-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_12', name: 'Miraç', avatar: '⚽', avatarBg: 'from-emerald-500 to-green-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_13', name: 'Muhammed Eymen', avatar: '🦖', avatarBg: 'from-emerald-600 to-teal-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_14', name: 'Osman Emir', avatar: '🦊', avatarBg: 'from-orange-500 to-amber-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_15', name: 'Ömer Asaf', avatar: '🤖', avatarBg: 'from-cyan-600 to-blue-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_16', name: 'Ömer Faruk', avatar: '🐼', avatarBg: 'from-slate-600 to-slate-800', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_17', name: 'Ravza', avatar: '🐝', avatarBg: 'from-amber-400 to-yellow-600', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_18', name: 'Sudem', avatar: '🐱', avatarBg: 'from-orange-400 to-rose-500', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_19', name: 'Umut', avatar: '🏆', avatarBg: 'from-yellow-500 to-amber-700', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_20', name: 'Zeynep', avatar: '🦉', avatarBg: 'from-amber-700 to-stone-800', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_21', name: 'Zilan', avatar: '🐧', avatarBg: 'from-slate-700 to-cyan-900', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_22', name: 'Öykü Liya', avatar: '🌸', avatarBg: 'from-pink-400 to-rose-500', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g2_23', name: 'Harun Ali', avatar: '🐻', avatarBg: 'from-amber-800 to-stone-900', grade: 2, className: '2-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
+export const OLCAYTO_EMAIL = 'olcaytohokul@gmail.com';
+export { MUSHAT_EMAIL, BANU_EMAIL };
 
-  // 3. SINIF ÖRNEK ÖĞRENCİLERİ
-  { id: 'std_g3_1', name: 'Zeynep Çelik', avatar: '🦄', avatarBg: 'from-pink-500 to-purple-600', grade: 3, className: '3-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g3_2', name: 'Burak Yıldız', avatar: '🤖', avatarBg: 'from-cyan-600 to-blue-700', grade: 3, className: '3-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g3_3', name: 'Ece Koç', avatar: '🐰', avatarBg: 'from-rose-400 to-pink-500', grade: 3, className: '3-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
+// 23 ÖĞRENCİLİK 2-C SINIFI LİSTESİ (olcaytohokul@gmail.com HESABINA AİT GERÇEK SINIF VE İSTATİSTİKLER: 1932 DOĞRU / 532 YANLIŞ)
+export { OLCAYTO_2C_STUDENTS, MUSHAT_3C_STUDENTS, BANU_2A_STUDENTS };
+export const OLCAYTO_2A_STUDENTS: Student[] = OLCAYTO_2C_STUDENTS;
 
-  // 4. SINIF ÖRNEK ÖĞRENCİLERİ
-  { id: 'std_g4_1', name: 'Mert Aksoy', avatar: '⚽', avatarBg: 'from-emerald-500 to-green-700', grade: 4, className: '4-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g4_2', name: 'Selin Arslan', avatar: '🎨', avatarBg: 'from-fuchsia-500 to-purple-700', grade: 4, className: '4-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() },
-  { id: 'std_g4_3', name: 'Kaan Polat', avatar: '⚡', avatarBg: 'from-yellow-500 to-orange-600', grade: 4, className: '4-A', totalCorrect: 0, totalWrong: 0, gamesPlayed: 0, gamesWon: 0, topicStats: {}, createdAt: new Date().toISOString() }
-];
+export const OLCAYTO_2A_NAMES_SET = new Set(
+  OLCAYTO_2A_STUDENTS.map(s => s.name.trim().toLocaleLowerCase('tr'))
+);
+
+export function isOlcaytoUser(userEmail?: string | null): boolean {
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  return email === OLCAYTO_EMAIL;
+}
+
+export function isMushatUser(userEmail?: string | null): boolean {
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  return email === MUSHAT_EMAIL;
+}
+
+export function isBanuUser(userEmail?: string | null): boolean {
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  return email === BANU_EMAIL;
+}
+
+// GENEL KULLANICILAR VE MİSAFİRLER İÇİN TEMİZ ÖRNEK ŞABLON (Deneme ve misafir girişlerinde boş liste)
+export const DEFAULT_STUDENTS: Student[] = [];
+
+/**
+ * Sınıfı bir üst veya başka bir seviyeye taşıma (Sene sonu sınıf aktarımı)
+ */
+export interface PromoteOptions {
+  fromGrade: number;
+  toGrade: number;
+  newClassName: string;
+  fromClassName?: string;
+  resetStats?: boolean;
+}
+
+export function promoteStudentsGrade(
+  students: Student[],
+  options: PromoteOptions,
+  userId?: string | null
+): Student[] {
+  const { fromGrade, toGrade, newClassName, fromClassName, resetStats = true } = options;
+  const uid = userId !== undefined ? userId : currentStoreUserId;
+
+  const updated = students.map(s => {
+    const matchGrade = s.grade === fromGrade;
+    const matchBranch = !fromClassName || fromClassName === 'ALL' || s.className === fromClassName;
+
+    if (matchGrade && matchBranch) {
+      let targetClass = (newClassName || '').trim();
+      if (!targetClass) {
+        // Otomatik hesaplama: 2-B -> 3-B, 2-C -> 3-C, 1-A -> 2-A
+        const branchPart = s.className ? s.className.replace(/^[0-9]+[/-]?/, '') : 'A';
+        targetClass = `${toGrade}-${branchPart || 'A'}`;
+      }
+
+      return {
+        ...s,
+        grade: toGrade,
+        className: targetClass,
+        totalCorrect: resetStats ? 0 : (s.totalCorrect || 0),
+        totalWrong: resetStats ? 0 : (s.totalWrong || 0),
+        gamesPlayed: resetStats ? 0 : (s.gamesPlayed || 0),
+        gamesWon: resetStats ? 0 : (s.gamesWon || 0),
+        topicStats: resetStats ? {} : (s.topicStats || {})
+      };
+    }
+    return s;
+  });
+
+  saveStudents(updated, uid);
+  return updated;
+}
+
+/**
+ * Kullanıcı e-postasına göre başlangıç öğrenci listesini belirler.
+ * olcaytohokul@gmail.com için 23 kişilik gerçek sınıf listesi (2-C),
+ * mushat29.mk@gmail.com için 23 kişilik gerçek sınıf listesi (3/C),
+ * banuhyt@gmail.com için 23 kişilik gerçek sınıf listesi (2-B),
+ * Mail girişi olmayan veya kayıtlı listesi bulunmayan kullanıcılar için BOŞ ([]) sınıf listesi verilir.
+ */
+export function getDefaultStudentsForUser(userEmail?: string | null): Student[] {
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  if (isOlcaytoUser(email)) {
+    return [...OLCAYTO_2C_STUDENTS];
+  }
+  if (isMushatUser(email)) {
+    return [...MUSHAT_3C_STUDENTS];
+  }
+  if (isBanuUser(email)) {
+    const banu2b = BANU_2A_STUDENTS.map(s => ({
+      ...s,
+      className: '2-B'
+    }));
+    return [...banu2b];
+  }
+  return [];
+}
+
+
+/**
+ * Kullanıcıya göre öğrenci verilerini korur ve izole eder.
+ * Her öğretmenin sınıfı, şubesi ve istatistikleri kendi hesabına aittir.
+ */
+export function sanitizeStudentsForUser(
+  students: Student[] = [],
+  userEmail?: string | null
+): Student[] {
+  const effectiveEmail = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  if (!Array.isArray(students) || students.length === 0) {
+    return getDefaultStudentsForUser(effectiveEmail);
+  }
+
+  // Deduplicate and ensure clean student objects with all required fields
+  return deduplicateStudents(students, effectiveEmail);
+}
 
 const STORAGE_KEY = 'classroom_students_v1';
 const INITIALIZED_KEY = 'classroom_students_init_v1';
@@ -75,17 +158,27 @@ export const SELECTED_STUDENTS_STORAGE_KEY = 'classroom_selected_students_v1';
 export const SELECTED_STUDENTS_BY_GRADE_KEY = 'classroom_selected_students_by_grade_v1';
 
 let currentStoreUserId: string | null = null;
+let currentStoreUserEmail: string | null = null;
 
 /**
- * Sets the active user id in studentStore so all load/save operations
+ * Sets the active user id and email in studentStore so all load/save operations
  * automatically target this user's private roster.
  */
+export function setActiveStoreUser(userId: string | null, userEmail?: string | null): void {
+  currentStoreUserId = userId;
+  currentStoreUserEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+}
+
 export function setActiveStoreUserId(userId: string | null): void {
   currentStoreUserId = userId;
 }
 
 export function getActiveStoreUserId(): string | null {
   return currentStoreUserId;
+}
+
+export function getActiveStoreUserEmail(): string | null {
+  return currentStoreUserEmail;
 }
 
 export function getStudentsStorageKey(userId?: string | null): string {
@@ -115,39 +208,125 @@ export function calculateStudentListTotalSolved(list: Student[]): number {
   }, 0);
 }
 
+export function normalizeStudentName(name: string): string {
+  if (!name) return '';
+  return name
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase('tr')
+    .replace(/ı/g, 'i')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+const OLCAYTO_FULL_NAME_BY_ID: Record<string, string> = {
+  'std_g2_1': 'Aybüke Yaylak',
+  'std_g2_2': 'Betül Sare Topkara',
+  'std_g2_3': 'Buğlem Can',
+  'std_g2_4': 'Çınar Eymen Karaca',
+  'std_g2_5': 'Derin Defne Gökhan',
+  'std_g2_6': 'Efekan Yörükoğlu',
+  'std_g2_7': 'Elif Su Tekin',
+  'std_g2_8': 'Eslem Deri',
+  'std_g2_9': 'Eymen Toprak',
+  'std_g2_10': 'Güneş Karadoğan',
+  'std_g2_11': 'Hatice Kübra',
+  'std_g2_12': 'Harun Ali Gökcan',
+  'std_g2_13': 'Harun Yıldırım',
+  'std_g2_14': 'Miraç Kütük',
+  'std_g2_15': 'Muhammed E. Çetin',
+  'std_g2_16': 'Osman Emir Öztürk',
+  'std_g2_17': 'Ömer Asaf Tekin',
+  'std_g2_18': 'Ömer Faruk Öcel',
+  'std_g2_19': 'Ravza Fidan',
+  'std_g2_20': 'Sudem Can',
+  'std_g2_21': 'Umut Kılıç',
+  'std_g2_22': 'Zeynep Koç',
+  'std_g2_23': 'Zilan Demir'
+};
+
+const OLCAYTO_FULL_NAME_BY_FIRSTNAME: Record<string, string> = {
+  'aybuke': 'Aybüke Yaylak',
+  'betul sare': 'Betül Sare Topkara',
+  'buglem': 'Buğlem Can',
+  'cinar eymen': 'Çınar Eymen Karaca',
+  'derin defne': 'Derin Defne Gökhan',
+  'efekan': 'Efekan Yörükoğlu',
+  'elif su': 'Elif Su Tekin',
+  'eslem': 'Eslem Deri',
+  'eymen': 'Eymen Toprak',
+  'gunes': 'Güneş Karadoğan',
+  'hatice kubra': 'Hatice Kübra',
+  'harun': 'Harun Yıldırım',
+  'harun ali': 'Harun Ali Gökcan',
+  'mirac': 'Miraç Kütük',
+  'muhammed eymen': 'Muhammed E. Çetin',
+  'muhammed e cetin': 'Muhammed E. Çetin',
+  'osman emir': 'Osman Emir Öztürk',
+  'omer asaf': 'Ömer Asaf Tekin',
+  'omer faruk': 'Ömer Faruk Öcel',
+  'oyku liya': 'Hatice Kübra',
+  'ravza': 'Ravza Fidan',
+  'sudem': 'Sudem Can',
+  'umut': 'Umut Kılıç',
+  'zeynep': 'Zeynep Koç',
+  'zilan': 'Zilan Demir'
+};
+
 /**
- * Intelligently merges two student lists, ALWAYS keeping the highest question counts,
- * highest topic stats, won games, and custom student names. Never resets existing stats!
+ * olcaytohokul@gmail.com sınıf listesindeki öğrencilere 2. isim ve soyadlarını otomatik ekler.
+ * Mevcut çözülen soru ve oyun istatistiklerini kesinlikle sıfırlamadan korur.
  */
-export function mergeStudentLists(currentList: Student[] = [], incomingList: Student[] = []): Student[] {
-  if (!Array.isArray(incomingList) || incomingList.length === 0) return Array.isArray(currentList) ? currentList : [];
-  if (!Array.isArray(currentList) || currentList.length === 0) return incomingList;
+export function upgradeOlcaytoStudentNames(students: Student[], userEmail?: string | null): Student[] {
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  if (!isOlcaytoUser(email)) return students;
 
-  const result = [...currentList];
-  const indexById = new Map<string, number>();
-  const indexByName = new Map<string, number>();
-
-  result.forEach((s, idx) => {
-    if (s.id) indexById.set(s.id, idx);
-    const normalizedName = `${s.grade || 2}__${s.name.trim().toLocaleLowerCase('tr')}`;
-    indexByName.set(normalizedName, idx);
+  return students.map(s => {
+    if (s.grade === 2 || s.className === '2-C') {
+      const byId = OLCAYTO_FULL_NAME_BY_ID[s.id];
+      if (byId) {
+        return { ...s, name: byId, className: '2-C' };
+      }
+      const norm = normalizeStudentName(s.name);
+      const byFirst = OLCAYTO_FULL_NAME_BY_FIRSTNAME[norm];
+      if (byFirst) {
+        return { ...s, name: byFirst, className: '2-C' };
+      }
+    }
+    return s;
   });
+}
 
-  incomingList.forEach(incoming => {
-    const normalizedName = `${incoming.grade || 2}__${incoming.name.trim().toLocaleLowerCase('tr')}`;
-    const targetIdx = indexById.has(incoming.id) 
-      ? indexById.get(incoming.id)! 
-      : indexByName.has(normalizedName) 
-      ? indexByName.get(normalizedName)! 
-      : -1;
+/**
+ * Deduplicates any student array so each student (by grade + normalized name) appears exactly once.
+ * Merges duplicate records preserving the highest statistics, won games, and topic details.
+ */
+export function deduplicateStudents(students: Student[] = [], userEmail?: string | null): Student[] {
+  if (!Array.isArray(students) || students.length === 0) return [];
+  const effectiveEmail = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
 
-    if (targetIdx !== -1) {
-      // Merge student preserving highest achievements
-      const curr = result[targetIdx];
-      const mergedTopicStats = { ...(curr.topicStats || {}) };
+  const preparedStudents = isOlcaytoUser(effectiveEmail)
+    ? upgradeOlcaytoStudentNames(students, effectiveEmail)
+    : students;
 
-      if (incoming.topicStats) {
-        Object.entries(incoming.topicStats).forEach(([topKey, inStat]) => {
+  const map = new Map<string, Student>();
+  const order: string[] = [];
+
+  for (const s of preparedStudents) {
+    if (!s || !s.name || typeof s.name !== 'string' || !s.name.trim()) continue;
+    const grade = (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2;
+    const normKey = `${grade}__${normalizeStudentName(s.name)}`;
+
+    if (map.has(normKey)) {
+      const existing = map.get(normKey)!;
+      const mergedTopicStats = { ...(existing.topicStats || {}) };
+
+      if (s.topicStats) {
+        Object.entries(s.topicStats).forEach(([topKey, inStat]) => {
           const curStat = mergedTopicStats[topKey];
           if (!curStat) {
             mergedTopicStats[topKey] = { ...inStat };
@@ -161,27 +340,81 @@ export function mergeStudentLists(currentList: Student[] = [], incomingList: Stu
         });
       }
 
-      result[targetIdx] = {
-        ...curr,
-        name: curr.name || incoming.name,
-        avatar: curr.avatar || incoming.avatar,
-        avatarBg: curr.avatarBg || incoming.avatarBg,
-        className: curr.className || incoming.className,
-        totalCorrect: Math.max(curr.totalCorrect || 0, incoming.totalCorrect || 0),
-        totalWrong: Math.max(curr.totalWrong || 0, incoming.totalWrong || 0),
-        gamesPlayed: Math.max(curr.gamesPlayed || 0, incoming.gamesPlayed || 0),
-        gamesWon: Math.max(curr.gamesWon || 0, incoming.gamesWon || 0),
-        topicStats: mergedTopicStats
-      };
-    } else {
-      // New student not in current list, append!
-      result.push(incoming);
-      indexById.set(incoming.id, result.length - 1);
-      indexByName.set(normalizedName, result.length - 1);
-    }
-  });
+      const preferredId = (existing.id && existing.id.startsWith('std_g2_')) 
+        ? existing.id 
+        : (s.id && s.id.startsWith('std_g2_')) 
+        ? s.id 
+        : (existing.id || s.id);
 
-  return result;
+      let preferredClassName = existing.className || s.className;
+      if (grade === 2 && isOlcaytoUser(effectiveEmail)) {
+        preferredClassName = '2-C';
+      } else if (grade === 2 && isBanuUser(effectiveEmail)) {
+        preferredClassName = (preferredClassName === '2-A' || !preferredClassName) ? '2-B' : preferredClassName;
+      } else if (grade === 3 && isMushatUser(effectiveEmail)) {
+        preferredClassName = '3/C';
+      } else if (!preferredClassName) {
+        preferredClassName = `${grade}-A`;
+      }
+
+      const cleanName = existing.name || s.name;
+
+      const merged: Student = {
+        ...existing,
+        id: preferredId,
+        name: cleanName,
+        avatar: existing.avatar || s.avatar,
+        avatarBg: existing.avatarBg || s.avatarBg,
+        grade,
+        className: preferredClassName,
+        totalCorrect: Math.max(existing.totalCorrect || 0, s.totalCorrect || 0),
+        totalWrong: Math.max(existing.totalWrong || 0, s.totalWrong || 0),
+        gamesPlayed: Math.max(existing.gamesPlayed || 0, s.gamesPlayed || 0),
+        gamesWon: Math.max(existing.gamesWon || 0, s.gamesWon || 0),
+        topicStats: mergedTopicStats,
+        createdAt: existing.createdAt || s.createdAt || new Date().toISOString()
+      };
+
+      map.set(normKey, merged);
+    } else {
+      let finalClass = s.className;
+      if (grade === 2 && isOlcaytoUser(effectiveEmail)) {
+        finalClass = '2-C';
+      } else if (grade === 2 && isBanuUser(effectiveEmail)) {
+        finalClass = (finalClass === '2-A' || !finalClass) ? '2-B' : finalClass;
+      } else if (grade === 3 && isMushatUser(effectiveEmail)) {
+        finalClass = '3/C';
+      } else if (!finalClass) {
+        finalClass = `${grade}-A`;
+      }
+
+      map.set(normKey, {
+        ...s,
+        grade,
+        className: finalClass
+      });
+      order.push(normKey);
+    }
+  }
+
+  return order.map(k => map.get(k)!);
+}
+
+/**
+ * Intelligently merges two student lists, ALWAYS keeping the highest question counts,
+ * highest topic stats, won games, and custom student names. Never resets existing stats,
+ * and guarantees NO DUPLICATES.
+ */
+export function mergeStudentLists(
+  currentList: Student[] = [],
+  incomingList: Student[] = [],
+  userEmail?: string | null
+): Student[] {
+  const combined = [
+    ...(Array.isArray(currentList) ? currentList : []),
+    ...(Array.isArray(incomingList) ? incomingList : [])
+  ];
+  return deduplicateStudents(combined, userEmail);
 }
 
 /**
@@ -225,21 +458,20 @@ export function saveToMultiUserVault(
   meta?: { userId?: string; userEmail?: string }
 ): void {
   try {
-    if (!identifier || !Array.isArray(students) || students.length === 0) return;
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+    if (!identifier || !Array.isArray(students)) return;
     const cleanId = identifier.trim().toLowerCase();
     const raw = localStorage.getItem(MULTI_USER_VAULT_KEY);
     const vault: Record<string, VaultUserRecord> = raw ? JSON.parse(raw) : {};
 
     const existingRecord = vault[cleanId];
-    const existingStudents = existingRecord?.students || [];
-    const mergedStudents = mergeStudentLists(existingStudents, students);
-    const totalSolved = calculateStudentListTotalSolved(mergedStudents);
+    const totalSolved = calculateStudentListTotalSolved(students);
 
     vault[cleanId] = {
       identifier: cleanId,
       userId: meta?.userId || existingRecord?.userId,
       userEmail: meta?.userEmail || existingRecord?.userEmail || (cleanId.includes('@') ? cleanId : undefined),
-      students: mergedStudents,
+      students,
       totalSolved,
       lastUpdated: new Date().toISOString()
     };
@@ -284,8 +516,10 @@ export function getAllUsersFromVault(): VaultUserRecord[] {
 }
 
 /**
- * Searches localStorage slots (legacy, guest, backup, email, vault, and user slots)
- * for custom student lists with solved questions, intelligently merging all found data.
+ * Searches localStorage slots strictly belonging to the active user/email
+ * for custom student lists with solved questions, intelligently merging data.
+ * Cross-user data leakage is strictly forbidden: Olcayto's classroom is never
+ * merged into other teachers' accounts.
  */
 export function recoverLegacyOrBackupStudents(
   userId?: string | null,
@@ -293,9 +527,10 @@ export function recoverLegacyOrBackupStudents(
 ): Student[] | null {
   try {
     let bestMerged: Student[] = [];
-    const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+    const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : currentStoreUserEmail;
+    const isOlcayto = isOlcaytoUser(cleanEmail);
 
-    // 1. Merge from vault first (both uid and email records)
+    // 1. Merge from vault for this user only
     if (userId) {
       const fromVaultUid = loadFromMultiUserVault(userId);
       if (fromVaultUid && fromVaultUid.length > 0) {
@@ -309,17 +544,19 @@ export function recoverLegacyOrBackupStudents(
       }
     }
 
-    // Check all vault records for matching email or userId
-    const allVaultRecords = getAllUsersFromVault();
-    for (const rec of allVaultRecords) {
-      if (cleanEmail && rec.userEmail && rec.userEmail.trim().toLowerCase() === cleanEmail) {
-        bestMerged = mergeStudentLists(bestMerged, rec.students);
-      } else if (userId && rec.userId === userId) {
-        bestMerged = mergeStudentLists(bestMerged, rec.students);
+    // Check vault records specifically matching this user's email or userId
+    if (cleanEmail || userId) {
+      const allVaultRecords = getAllUsersFromVault();
+      for (const rec of allVaultRecords) {
+        const matchesEmail = cleanEmail && rec.userEmail && rec.userEmail.trim().toLowerCase() === cleanEmail;
+        const matchesUid = userId && rec.userId === userId;
+        if (matchesEmail || matchesUid) {
+          bestMerged = mergeStudentLists(bestMerged, rec.students);
+        }
       }
     }
 
-    // 2. Collect candidate keys to check
+    // 2. Collect candidate keys to check strictly for this user
     const keysToCheck: string[] = [];
 
     if (userId) {
@@ -333,28 +570,27 @@ export function recoverLegacyOrBackupStudents(
       keysToCheck.push(`classroom_students_${cleanEmail}`);
     }
 
-    // 3. Scan all localStorage keys for relevant user/backup slots
+    // Scan localStorage keys strictly belonging to this user
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
       if (k && !keysToCheck.includes(k)) {
         const lowerK = k.toLowerCase();
-        if (
-          (cleanEmail && lowerK.includes(cleanEmail)) ||
-          (userId && lowerK.includes(userId.toLowerCase())) ||
-          lowerK.startsWith('classroom_students_backup_') ||
-          lowerK.startsWith('classroom_students_user_')
-        ) {
+        if (cleanEmail && lowerK.includes(cleanEmail)) {
+          keysToCheck.push(k);
+        } else if (userId && lowerK.includes(userId.toLowerCase())) {
           keysToCheck.push(k);
         }
       }
     }
 
-    // 4. Legacy and guest fallback slots
-    keysToCheck.push(
-      'classroom_students_backup_v1',
-      STORAGE_KEY,
-      'classroom_students_guest_v1'
-    );
+    // 3. Legacy and guest slots are ONLY checked if the user is Olcayto or a guest with no user ID
+    if (isOlcayto || (!userId && !cleanEmail)) {
+      keysToCheck.push(
+        'classroom_students_backup_v1',
+        STORAGE_KEY,
+        'classroom_students_guest_v1'
+      );
+    }
 
     for (const key of keysToCheck) {
       const raw = localStorage.getItem(key);
@@ -374,6 +610,9 @@ export function recoverLegacyOrBackupStudents(
         }
       } catch {}
     }
+
+    // Sanitize to guarantee non-Olcayto users never inherit Olcayto's 23 students
+    bestMerged = sanitizeStudentsForUser(bestMerged, cleanEmail);
 
     const totalSolved = calculateStudentListTotalSolved(bestMerged);
     if (bestMerged.length > 0 && (!isDefaultSampleList(bestMerged) || totalSolved > 0)) {
@@ -395,18 +634,22 @@ export function recoverLegacyOrBackupStudents(
 }
 
 /**
- * Loads students from localStorage scoped to active user or specified userId.
+ * Loads students from localStorage scoped to active user or specified userId and userEmail.
  * Ensures every student is assigned to their proper grade (1, 2, 3, 4).
- * If previously created without grade, defaults to 2 (since 2. Sınıf was default).
+ * Enforces strict user isolation: Olcayto's 23 students belong only to olcaytohokul@gmail.com.
  */
-export function loadStudents(userId?: string | null): Student[] {
+export function loadStudents(userId?: string | null, userEmail?: string | null): Student[] {
   try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return getDefaultStudentsForUser(userEmail);
+    }
     const uid = userId !== undefined ? userId : currentStoreUserId;
+    const email = userEmail !== undefined ? (userEmail ? userEmail.trim().toLowerCase() : null) : currentStoreUserEmail;
     const storageKey = getStudentsStorageKey(uid);
     const initKey = getStudentsInitKey(uid);
 
-    let raw = localStorage.getItem(storageKey);
-    let isInitialized = localStorage.getItem(initKey);
+    const raw = localStorage.getItem(storageKey);
+    const isInitialized = localStorage.getItem(initKey);
 
     let parsed: any = null;
     if (raw !== null) {
@@ -416,67 +659,41 @@ export function loadStudents(userId?: string | null): Student[] {
     }
 
     if (Array.isArray(parsed) && parsed.length > 0) {
-      // Check if Grade 2 in this list has old demo students (Ali Yılmaz, Ayşe Kaya, Mehmet Demir)
-      // or if total students is 12 (the old 3x4 demo set)
-      const g2Students = parsed.filter((s: any) => Number(s.grade) === 2);
-      const isG2DemoOnly = g2Students.length <= 3 && g2Students.some((s: any) => s.name === 'Ali Yılmaz' || s.name === 'Ayşe Kaya');
-      const isOldTwelveSample = parsed.length === 12 && parsed.some((s: any) => s.name === 'Ali Yılmaz');
-
-      if (isG2DemoOnly || isOldTwelveSample) {
-        // Upgrade Grade 2 to the real 23 classroom students while keeping other grades intact
-        const nonG2 = parsed.filter((s: any) => Number(s.grade) !== 2);
-        const realG2 = DEFAULT_STUDENTS.filter(s => s.grade === 2);
-        const upgraded = [...nonG2, ...realG2];
-        saveStudents(upgraded, uid);
-        return upgraded;
-      }
-
-      return parsed.map((s: any) => ({
+      let mapped: Student[] = parsed.map((s: any) => ({
         ...s,
         grade: (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2
       }));
+      if (isOlcaytoUser(email)) {
+        mapped = upgradeOlcaytoStudentNames(mapped, email);
+      }
+      return mapped;
     }
 
-    // Check user's own backup slot first
-    if (uid) {
-      const backupRaw = localStorage.getItem(`classroom_students_backup_${uid}`);
-      if (backupRaw) {
-        try {
-          const backupParsed = JSON.parse(backupRaw);
-          if (Array.isArray(backupParsed) && backupParsed.length > 0) {
-            saveStudents(backupParsed, uid);
-            return backupParsed;
-          }
-        } catch {}
-      }
+    // If the user has already initialized and roster is empty, respect user choice
+    if (isInitialized) {
+      return [];
     }
 
     // If guest and not yet initialized in guest_v1, check legacy 'classroom_students_v1'
     if (!uid && raw === null) {
       const legacyRaw = localStorage.getItem(STORAGE_KEY);
       if (legacyRaw !== null) {
-        raw = legacyRaw;
-        isInitialized = localStorage.getItem(INITIALIZED_KEY);
         try {
-          parsed = JSON.parse(raw);
+          parsed = JSON.parse(legacyRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            saveStudents(parsed, null);
             return parsed;
           }
         } catch {}
       }
     }
 
-    // First time EVER visit for this specific user or guest: seed default sample students
-    if (!isInitialized) {
-      saveStudents(DEFAULT_STUDENTS, uid);
-      return DEFAULT_STUDENTS;
-    }
-
-    return [];
+    // First time EVER visit: seed proper initial template
+    const defaultList = getDefaultStudentsForUser(email);
+    saveStudents(defaultList, uid);
+    return defaultList;
   } catch (err) {
     console.error('Error loading students from localStorage:', err);
-    return DEFAULT_STUDENTS;
+    return getDefaultStudentsForUser(userEmail);
   }
 }
 
@@ -485,29 +702,30 @@ export function loadStudents(userId?: string | null): Student[] {
  */
 export function saveStudents(students: Student[], userId?: string | null): void {
   try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    const cleanStudents = deduplicateStudents(students);
     const uid = userId !== undefined ? userId : currentStoreUserId;
     const storageKey = getStudentsStorageKey(uid);
     const initKey = getStudentsInitKey(uid);
 
     localStorage.setItem(initKey, 'true');
-    localStorage.setItem(storageKey, JSON.stringify(students));
+    localStorage.setItem(storageKey, JSON.stringify(cleanStudents));
 
     // Also mirror to legacy key if guest
     if (!uid) {
       localStorage.setItem(INITIALIZED_KEY, 'true');
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(students));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanStudents));
     }
 
-    // Always maintain a safe persistent backup of real custom student data and solved stats
-    if (Array.isArray(students) && students.length > 0) {
-      const solved = calculateStudentListTotalSolved(students);
-      if (!isDefaultSampleList(students) || solved > 0) {
-        localStorage.setItem('classroom_students_backup_v1', JSON.stringify(students));
-        if (uid) {
-          localStorage.setItem(`classroom_students_backup_${uid}`, JSON.stringify(students));
-          saveToMultiUserVault(uid, students);
-        }
-      }
+    // Keep vault current with active roster without resurrecting deleted items
+    if (uid) {
+      saveToMultiUserVault(uid, cleanStudents);
+    }
+    const curEmail = currentStoreUserEmail;
+    if (curEmail) {
+      saveToMultiUserVault(curEmail, cleanStudents);
     }
   } catch (err) {
     console.error('Error saving students to localStorage:', err);
@@ -670,8 +888,8 @@ export function clearStudentsForGrade(grade: number, existingStudents: Student[]
 /**
  * Restores default sample students for a specific grade
  */
-export function restoreDefaultStudentsForGrade(grade: number, existingStudents: Student[]): Student[] {
-  const defaults = DEFAULT_STUDENTS.filter(s => s.grade === grade);
+export function restoreDefaultStudentsForGrade(grade: number, existingStudents: Student[], userEmail?: string | null): Student[] {
+  const defaults = getDefaultStudentsForUser(userEmail || currentStoreUserEmail).filter(s => s.grade === grade);
   const otherGrades = existingStudents.filter(s => s.grade !== grade);
   const updated = [...otherGrades, ...defaults];
   saveStudents(updated);
@@ -689,10 +907,12 @@ export function clearAllStudents(): Student[] {
 /**
  * Restores all sample students across all grades
  */
-export function restoreDefaultStudents(): Student[] {
-  saveStudents(DEFAULT_STUDENTS);
-  return DEFAULT_STUDENTS;
+export function restoreDefaultStudents(userEmail?: string | null): Student[] {
+  const defaults = getDefaultStudentsForUser(userEmail || currentStoreUserEmail);
+  saveStudents(defaults);
+  return defaults;
 }
+
 
 export function recordStudentAnswer(
   studentId: string,

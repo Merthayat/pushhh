@@ -31,6 +31,8 @@ interface DengeTerazisiGameProps {
   onSelectStudent?: (id: string | null) => void;
   onSelectStudentForPlayer?: (pIdx: number, id: string | null) => void;
   onOpenRosterModal?: (grade?: number) => void;
+  onQuestionAnswered?: (isCorrect: boolean, pIdx?: number) => void;
+  onGameCompleted?: (winnerIdx: number | null, pCount?: number) => void;
 }
 
 interface WeightItem {
@@ -79,7 +81,9 @@ export const DengeTerazisiGame: React.FC<DengeTerazisiGameProps> = ({
   selectedStudentId,
   onSelectStudent,
   onSelectStudentForPlayer,
-  onOpenRosterModal
+  onOpenRosterModal,
+  onQuestionAnswered,
+  onGameCompleted
 }) => {
   const [currentProblem, setCurrentProblem] = useState<TargetProblem>(OBJECT_PROBLEMS[0]);
 
@@ -155,6 +159,7 @@ export const DengeTerazisiGame: React.FC<DengeTerazisiGameProps> = ({
   const handleCheck = () => {
     if (isGameOver) return;
     if (isBalanced) {
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 20);
       setStreak(st => st + 1);
@@ -167,7 +172,10 @@ export const DengeTerazisiGame: React.FC<DengeTerazisiGameProps> = ({
       } catch {}
 
       if (questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(0, 1);
+        }, 1200);
       } else {
         setTimeout(() => {
           setQuestionCount(q => q + 1);
@@ -175,6 +183,7 @@ export const DengeTerazisiGame: React.FC<DengeTerazisiGameProps> = ({
         }, 1600);
       }
     } else {
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -182,7 +191,10 @@ export const DengeTerazisiGame: React.FC<DengeTerazisiGameProps> = ({
       if (playMp3) playMp3('/hata.mp3');
 
       if (newMistakes >= 3 || questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(null, 1);
+        }, 1200);
       }
     }
   };

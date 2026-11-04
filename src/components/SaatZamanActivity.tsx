@@ -34,6 +34,8 @@ interface SaatZamanActivityProps {
   onSelectStudent?: (id: string | null) => void;
   onSelectStudentForPlayer?: (pIdx: number, id: string | null) => void;
   onOpenRosterModal?: (grade?: number) => void;
+  onQuestionAnswered?: (isCorrect: boolean, pIdx?: number) => void;
+  onGameCompleted?: (winnerIdx: number | null, pCount?: number) => void;
 }
 
 type ModeFilter = 'tam' | 'yarim' | 'ceyrek' | 'hepsi';
@@ -51,7 +53,9 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
   selectedStudentId,
   onSelectStudent,
   onSelectStudentForPlayer,
-  onOpenRosterModal
+  onOpenRosterModal,
+  onQuestionAnswered,
+  onGameCompleted
 }) => {
   const [filterMode, setFilterMode] = useState<ModeFilter>(initialMode);
   const [gameTab, setGameTab] = useState<GameTab>('ayarla');
@@ -266,6 +270,7 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
     const isMinuteMatch = currentMinute === targetMinute;
 
     if (isHourMatch && isMinuteMatch) {
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 10);
       setStreak(st => st + 1);
@@ -278,7 +283,10 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
       } catch {}
 
       if (questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(0, 1);
+        }, 1200);
       } else {
         setTimeout(() => {
           setQuestionCount(q => q + 1);
@@ -286,6 +294,7 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
         }, 1500);
       }
     } else {
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -293,7 +302,10 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
       if (playMp3) playMp3('/hata.mp3');
 
       if (newMistakes >= 3 || questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(null, 1);
+        }, 1200);
       }
     }
   };
@@ -305,6 +317,7 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
     const targetStr = `${String(targetHour).padStart(2, '0')}:${String(targetMinute).padStart(2, '0')}`;
 
     if (opt === targetStr) {
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 10);
       setStreak(st => st + 1);
@@ -317,7 +330,10 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
       } catch {}
 
       if (questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(0, 1);
+        }, 1200);
       } else {
         setTimeout(() => {
           setQuestionCount(q => q + 1);
@@ -325,6 +341,7 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
         }, 1500);
       }
     } else {
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -332,7 +349,10 @@ export const SaatZamanActivity: React.FC<SaatZamanActivityProps> = ({
       if (playMp3) playMp3('/hata.mp3');
 
       if (newMistakes >= 3 || questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(null, 1);
+        }, 1200);
       }
     }
   };

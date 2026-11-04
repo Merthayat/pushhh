@@ -12,10 +12,9 @@ interface RandomStudentWheelModalProps {
 }
 
 const FALLBACK_NAMES = [
-  'Aybüke', 'Betül Sare', 'Buğlem', 'Çınar Eymen', 'Derin Defne',
-  'Efekan', 'Elif Su', 'Eslem', 'Eymen', 'Güneş',
-  'Harun', 'Miraç', 'Muhammed', 'Osman Emir', 'Ömer Asaf',
-  'Ömer Faruk', 'Ravza', 'Sudem', 'Umut', 'Zeynep'
+  'Ali', 'Ayşe', 'Mehmet', 'Fatma', 'Can', 
+  'Elif', 'Deniz', 'Zeynep', 'Burak', 'Ece', 
+  'Mert', 'Selin', 'Kaan', 'Ömer', 'Emir'
 ];
 
 const SLICE_COLORS = [

@@ -1,9 +1,9 @@
 import { Student } from '../types/student';
 import { ClassCountersData, saveCounters, loadCounters } from './counterStorage';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
-import { loadHomeworkData, saveHomeworkData, mergeHomeworkData, calculateTotalHomework } from './homeworkStore';
+import { loadHomeworkData, saveHomeworkData, mergeHomeworkData, calculateTotalHomework, sanitizeHomeworkForUser } from './homeworkStore';
 import { SchoolSettings, loadSchoolSettings, saveSchoolSettings } from './schoolSettings';
-import { saveStudents, loadStudents, DEFAULT_STUDENTS } from './studentStore';
+import { saveStudents, loadStudents, DEFAULT_STUDENTS, sanitizeStudentsForUser } from './studentStore';
 import { saveUserDataToCloud, loadUserDataFromCloud, formatFriendlyDate, isFirestoreQuotaExceeded } from '../services/cloudSyncService';
 import { User } from '../firebase';
 
@@ -91,9 +91,9 @@ export async function downloadDataToPC(options: {
   const userId = currentUser?.uid || null;
 
   // 1. Start with current in-memory students & counters
-  let studentsToExport = [...options.students];
+  let studentsToExport = sanitizeStudentsForUser([...options.students], currentUser?.email);
   let countersToExport = options.counters || loadCounters();
-  let homeworkToExport = loadHomeworkData(userId);
+  let homeworkToExport = sanitizeHomeworkForUser(loadHomeworkData(userId, currentUser?.email), currentUser?.email);
   const settingsToExport = loadSchoolSettings();
 
   // 2. If logged in and quota is not exceeded, try fetching the freshest cloud backup to combine
@@ -456,11 +456,14 @@ export async function applyBackupToSystem(options: {
     };
 
     // Homework birleştir
-    const currentHomework = loadHomeworkData(userId);
+    const currentHomework = loadHomeworkData(userId, currentUser?.email);
     finalHomework = mergeHomeworkData(currentHomework, backupData.homeworkData || {});
   }
 
-  // 3. Yerel depolamaya (localStorage) kaydet
+  // 3. Kullanıcıya göre temizle ve yerel depolamaya (localStorage) kaydet
+  finalStudents = sanitizeStudentsForUser(finalStudents, currentUser?.email);
+  finalHomework = sanitizeHomeworkForUser(finalHomework, currentUser?.email);
+
   saveStudents(finalStudents, userId);
   saveCounters(finalCounters);
   saveHomeworkData(finalHomework, userId);

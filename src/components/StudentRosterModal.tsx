@@ -34,7 +34,9 @@ import {
   clearAllStudents,
   clearStudentsForGrade,
   restoreDefaultStudents,
-  restoreDefaultStudentsForGrade
+  restoreDefaultStudentsForGrade,
+  deduplicateStudents,
+  promoteStudentsGrade
 } from '../utils/studentStore';
 import { exportStudentsToPDF } from '../utils/studentPdfExport';
 import { downloadDataToPC } from '../utils/backupFileService';
@@ -116,6 +118,16 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
   const [confirmRestoreGrade, setConfirmRestoreGrade] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
+  // Sınıfı Taşı (Sene Sonu Sınıf Aktarımı) Durumu
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promoteSourceGrade, setPromoteSourceGrade] = useState<number>(() => {
+    return (currentGrade && [1, 2, 3, 4].includes(currentGrade)) ? currentGrade : 2;
+  });
+  const [promoteTargetGrade, setPromoteTargetGrade] = useState<number>(3);
+  const [promoteSourceBranch, setPromoteSourceBranch] = useState<string>('ALL');
+  const [promoteNewBranch, setPromoteNewBranch] = useState<string>('');
+  const [promoteResetStats, setPromoteResetStats] = useState<boolean>(true);
+
   // Toplu içe aktarma açıldığında hedef sınıfı aktif sekmeyle eşitle
   useEffect(() => {
     if (activeGradeTab !== 'ALL') {
@@ -123,6 +135,29 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
       setNewStudentGrade(activeGradeTab);
     }
   }, [activeGradeTab]);
+
+  // Çift öğrenci kaydı tespit edilirse otomatik temizle ve birleştir
+  useEffect(() => {
+    if (isOpen && Array.isArray(students) && students.length > 0) {
+      const deduped = deduplicateStudents(students);
+      if (deduped.length < students.length) {
+        saveStudents(deduped);
+        onStudentsUpdated(deduped);
+        setSuccessNotice(`🧹 Çift öğrenci kayıtları temizlendi (${students.length} → ${deduped.length} öğrenci).`);
+        setTimeout(() => setSuccessNotice(null), 4000);
+      }
+    }
+  }, [isOpen, students]);
+
+  const handleCleanDuplicates = () => {
+    playMp3?.('/op.mp3');
+    const deduped = deduplicateStudents(students);
+    saveStudents(deduped);
+    onStudentsUpdated(deduped);
+    playMp3?.('/coin.mp3');
+    setSuccessNotice(`🧹 Çift öğrenci kayıtları başarıyla temizlendi, toplam ${deduped.length} tekil öğrenci kaydedildi! ✨`);
+    setTimeout(() => setSuccessNotice(null), 4000);
+  };
 
   if (!isOpen) return null;
 
@@ -349,6 +384,74 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
     }
   };
 
+  // Sınıfı Taşı (Sene sonu üst sınıfa aktarım)
+  const handleOpenPromoteModal = () => {
+    playMp3?.('/op.mp3');
+    const curG = (typeof activeGradeTab === 'number' && [1, 2, 3, 4].includes(activeGradeTab))
+      ? activeGradeTab
+      : ((currentGrade && [1, 2, 3, 4].includes(currentGrade)) ? currentGrade : 2);
+    setPromoteSourceGrade(curG);
+    const nextG = curG < 4 ? curG + 1 : 4;
+    setPromoteTargetGrade(nextG);
+
+    // Mevcut şubeleri tespit et
+    const branches = Array.from(
+      new Set(students.filter(s => s.grade === curG && s.className).map(s => s.className!))
+    );
+
+    if (branches.length === 1) {
+      const b = branches[0];
+      setPromoteSourceBranch(b);
+      const letter = b.replace(/^[0-9]+[/-]?/, '') || 'A';
+      setPromoteNewBranch(`${nextG}-${letter}`);
+    } else {
+      setPromoteSourceBranch('ALL');
+      setPromoteNewBranch(`${nextG}-A`);
+    }
+
+    setPromoteResetStats(true);
+    setShowPromoteModal(true);
+  };
+
+  const handleExecutePromote = () => {
+    const studentsToPromote = students.filter(s => {
+      const matchGrade = s.grade === promoteSourceGrade;
+      const matchBranch = promoteSourceBranch === 'ALL' || s.className === promoteSourceBranch;
+      return matchGrade && matchBranch;
+    });
+
+    if (studentsToPromote.length === 0) {
+      setSuccessNotice(`⚠️ ${promoteSourceGrade}. Sınıfta taşınacak öğrenci bulunamadı.`);
+      setTimeout(() => setSuccessNotice(null), 4000);
+      setShowPromoteModal(false);
+      return;
+    }
+
+    const updated = promoteStudentsGrade(
+      students,
+      {
+        fromGrade: promoteSourceGrade,
+        toGrade: promoteTargetGrade,
+        fromClassName: promoteSourceBranch,
+        newClassName: promoteNewBranch,
+        resetStats: promoteResetStats
+      },
+      currentUser?.uid
+    );
+
+    saveStudents(updated, currentUser?.uid);
+    onStudentsUpdated(updated);
+    setActiveGradeTab(promoteTargetGrade);
+    setShowPromoteModal(false);
+    playMp3?.('/alkis.mp3');
+
+    const branchLabel = promoteNewBranch.trim() || `${promoteTargetGrade}-A`;
+    setSuccessNotice(
+      `🎓 ${studentsToPromote.length} öğrenci başarıyla ${promoteSourceGrade}. Sınıftan → ${promoteTargetGrade}. Sınıf (${branchLabel}) seviyesine taşındı!`
+    );
+    setTimeout(() => setSuccessNotice(null), 5000);
+  };
+
   // Sınıf seviyesi renk şeması
   const gradeColors: Record<number, { bg: string; text: string; border: string }> = {
     1: { bg: 'bg-emerald-500/20', text: 'text-emerald-300', border: 'border-emerald-400/40' },
@@ -401,20 +504,7 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {onRecoverStudents && (
-              <button
-                type="button"
-                onClick={async () => {
-                  playMp3?.('/op.mp3');
-                  await onRecoverStudents();
-                }}
-                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 hover:text-amber-200 border border-amber-500/50 hover:border-amber-400 font-black text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1.5 shadow"
-                title="Kayıtlı/silinen öğrencileri yedekten geri getir"
-              >
-                <ArchiveRestore size={14} className="text-amber-400" />
-                <span className="hidden sm:inline">Öğrencileri Kurtar</span>
-              </button>
-            )}
+
 
             {onOpenCloudSync && (
               <button
@@ -657,6 +747,16 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
 
               <button
                 type="button"
+                onClick={handleCleanDuplicates}
+                className="px-2.5 py-1 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white font-bold text-[11px] sm:text-xs flex items-center gap-1 transition cursor-pointer active:scale-95 shadow border border-amber-400/40"
+                title="Çift veya yinelenen öğrenci kayıtlarını temizler ve yüksek istatistikleri korur"
+              >
+                <Sparkles size={13} className="text-amber-200" />
+                <span>Çiftleri Temizle</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleDownloadCSV}
                 className="px-2 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-[11px] sm:text-xs flex items-center gap-1 transition cursor-pointer active:scale-95"
                 title="İstatistikleri CSV olarak indir"
@@ -698,6 +798,17 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
               >
                 <Download size={13} className="text-teal-400" />
                 <span className="hidden sm:inline">JSON Yedek</span>
+              </button>
+
+              {/* SINIFI TAŞI / SENE SONU SINIF AKTARIMI BUTONU */}
+              <button
+                type="button"
+                onClick={handleOpenPromoteModal}
+                className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 border border-violet-400/50 text-white font-black text-[11px] sm:text-xs flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow shadow-purple-950/40"
+                title="Sene sonunda öğrencileri bir üst sınıfa aktarır (Örn: 2-B -> 3-B)"
+              >
+                <GraduationCap size={13} className="text-violet-200" />
+                <span>Sınıfı Taşı</span>
               </button>
 
               {/* CLEAR GRADE ROSTER BUTTON */}
@@ -1254,6 +1365,200 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* SINIFI TAŞI / SENE SONU SINIF AKTARIMI MODAL DIALOG */}
+        {showPromoteModal && (
+          <div className="fixed inset-0 z-[500] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn select-none">
+            <div className="bg-gradient-to-b from-[#1b173d] via-[#141030] to-[#0d0a22] border-2 border-purple-500/60 rounded-[28px] max-w-lg w-full p-4 sm:p-5 shadow-[0_25px_70px_rgba(0,0,0,0.95)] flex flex-col gap-3.5 text-white">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-purple-500/30 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-600 to-purple-700 flex items-center justify-center text-xl shadow border border-purple-400/50">
+                    🎓
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-white">Sınıfı Taşı (Sene Sonu Aktarımı)</h3>
+                    <p className="text-[11px] text-purple-200/80">Öğrencileri isim ve avatarlarını koruyarak üst sınıfa aktarın</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPromoteModal(false)}
+                  className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition active:scale-95 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Form Body */}
+              <div className="flex flex-col gap-3 text-xs">
+                {/* 2 Sütun: Kaynak ve Hedef */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {/* Kaynak Sınıf */}
+                  <div className="flex flex-col gap-1.5 bg-slate-900/90 p-3 rounded-2xl border border-slate-700/80 shadow-xs">
+                    <label className="font-black text-indigo-300 text-[10px] uppercase tracking-wide">
+                      1. Kaynak Sınıf (Mevcut)
+                    </label>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[1, 2, 3, 4].map(g => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => {
+                            setPromoteSourceGrade(g);
+                            const nextG = g < 4 ? g + 1 : 4;
+                            setPromoteTargetGrade(nextG);
+                            const branches = Array.from(
+                              new Set(students.filter(s => s.grade === g && s.className).map(s => s.className!))
+                            );
+                            if (branches.length === 1) {
+                              setPromoteSourceBranch(branches[0]);
+                              const letter = branches[0].replace(/^[0-9]+[/-]?/, '') || 'A';
+                              setPromoteNewBranch(`${nextG}-${letter}`);
+                            } else {
+                              setPromoteSourceBranch('ALL');
+                              setPromoteNewBranch(`${nextG}-A`);
+                            }
+                          }}
+                          className={`py-1 rounded-lg font-black text-xs transition cursor-pointer border ${
+                            promoteSourceGrade === g
+                              ? 'bg-indigo-600 text-white border-indigo-300 shadow'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          {g}. Sınıf
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-1 flex flex-col gap-1">
+                      <span className="text-[10px] text-slate-400 font-bold">Taşınacak Şube:</span>
+                      <select
+                        value={promoteSourceBranch}
+                        onChange={e => {
+                          const b = e.target.value;
+                          setPromoteSourceBranch(b);
+                          if (b !== 'ALL') {
+                            const letter = b.replace(/^[0-9]+[/-]?/, '') || 'A';
+                            setPromoteNewBranch(`${promoteTargetGrade}-${letter}`);
+                          }
+                        }}
+                        className="w-full px-2 py-1 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-indigo-400"
+                      >
+                        <option value="ALL">Tüm Şubeler</option>
+                        {Array.from(
+                          new Set(students.filter(s => s.grade === promoteSourceGrade && s.className).map(s => s.className!))
+                        ).map(b => (
+                          <option key={b} value={b}>{b} Şubesi</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Hedef Sınıf */}
+                  <div className="flex flex-col gap-1.5 bg-slate-900/90 p-3 rounded-2xl border border-slate-700/80 shadow-xs">
+                    <label className="font-black text-emerald-300 text-[10px] uppercase tracking-wide">
+                      2. Hedef Sınıf (Yeni)
+                    </label>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[1, 2, 3, 4].map(g => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => {
+                            setPromoteTargetGrade(g);
+                            if (promoteSourceBranch !== 'ALL') {
+                              const letter = promoteSourceBranch.replace(/^[0-9]+[/-]?/, '') || 'A';
+                              setPromoteNewBranch(`${g}-${letter}`);
+                            } else {
+                              setPromoteNewBranch(`${g}-A`);
+                            }
+                          }}
+                          className={`py-1 rounded-lg font-black text-xs transition cursor-pointer border ${
+                            promoteTargetGrade === g
+                              ? 'bg-emerald-600 text-white border-emerald-300 shadow'
+                              : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                          }`}
+                        >
+                          {g}. Sınıf
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="mt-1 flex flex-col gap-1">
+                      <span className="text-[10px] text-slate-400 font-bold">Yeni Şube Adı:</span>
+                      <input
+                        type="text"
+                        value={promoteNewBranch}
+                        onChange={e => setPromoteNewBranch(e.target.value)}
+                        placeholder="Örn: 3-B, 3-C, 4-A"
+                        className="w-full px-2 py-1 rounded-xl bg-slate-800 border border-slate-700 text-emerald-300 font-black text-xs focus:outline-none focus:border-emerald-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Soru ve Skorları Sıfırlama Seçeneği */}
+                <label className="flex items-start gap-2 bg-purple-950/40 border border-purple-500/30 p-2.5 rounded-2xl cursor-pointer hover:bg-purple-950/60 transition">
+                  <input
+                    type="checkbox"
+                    checked={promoteResetStats}
+                    onChange={e => setPromoteResetStats(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded accent-purple-500 cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-white text-xs">Yeni eğitim yılı için soru istatistiklerini sıfırla (Önerilen)</span>
+                    <span className="text-[10px] text-purple-200/70">
+                      Öğrenci isimleri, profil ID'leri ve sevimli avatarları aynen korunur. Yalnızca yeni eğitim yılı için doğru/yanlış sayaçları sıfırdan başlar.
+                    </span>
+                  </div>
+                </label>
+
+                {/* Önizleme: Taşınacak Öğrenciler */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-2.5 flex flex-col gap-1.5 max-h-32 overflow-y-auto">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                    <span>Taşınacak Öğrenci Listesi:</span>
+                    <span className="text-amber-300">
+                      {students.filter(s => s.grade === promoteSourceGrade && (promoteSourceBranch === 'ALL' || s.className === promoteSourceBranch)).length} Öğrenci
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {students
+                      .filter(s => s.grade === promoteSourceGrade && (promoteSourceBranch === 'ALL' || s.className === promoteSourceBranch))
+                      .map(s => (
+                        <span key={s.id} className="px-2 py-0.5 rounded-lg bg-slate-800 border border-slate-700 text-[10px] text-white flex items-center gap-1">
+                          <span>{s.avatar}</span>
+                          <span>{s.name}</span>
+                        </span>
+                      ))}
+                    {students.filter(s => s.grade === promoteSourceGrade && (promoteSourceBranch === 'ALL' || s.className === promoteSourceBranch)).length === 0 && (
+                      <span className="text-slate-500 text-[11px] italic">Bu seçimde taşınacak öğrenci bulunmuyor.</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-purple-500/30">
+                <button
+                  type="button"
+                  onClick={() => setShowPromoteModal(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer"
+                >
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecutePromote}
+                  className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black text-xs shadow-lg transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <GraduationCap size={15} />
+                  <span>Sınıfı Taşı ve Yeni Sınıfa Aktar</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

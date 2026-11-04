@@ -2,29 +2,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Worldwide Global Site Statistics & Visitor Counters
-    match /global_stats/{statId} {
-      allow read, write: if true;
-    }
-
-    // Health check / connection test
-    match /test/{docId} {
-      allow read: if true;
-    }
-
-    // Common Helper Functions
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
       return isSignedIn() && (
-        request.auth.uid == userId || 
-        (request.auth.token.email != null && request.auth.token.email == userId)
+        request.auth.uid == userId ||
+        (request.auth.token.email != null && (
+          request.auth.token.email == userId ||
+          request.auth.token.email.lower() == userId.lower()
+        ))
       );
     }
 
-    // User Profile Document and all user-owned subcollections (including /data/classroom)
+    // Public / shared read if necessary, or global test collections
+    match /global_stats/{statId} {
+      allow read, write: if true;
+    }
+
+    match /test/{docId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Isolated user spaces - strictly private per teacher/user
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 

@@ -23,12 +23,12 @@ import {
   Cloud,
   RotateCcw
 } from 'lucide-react';
-import { User } from '../firebase';
+import { User, auth } from '../firebase';
 import { StatRecord, GroupStatsRecord, SinglePlayerStatsRecord } from '../types';
 import { Student } from '../types/student';
 import { exportStudentsToPDF } from '../utils/studentPdfExport';
 import { StudentTopicStatsDetail } from './StudentTopicStatsDetail';
-import { resetSingleStudentStat, resetSingleStudentTopicStat } from '../utils/studentStore';
+import { resetSingleStudentStat, resetSingleStudentTopicStat, deduplicateStudents } from '../utils/studentStore';
 import { loadHomeworkData, getTodayDateString } from '../utils/homeworkStore';
 import { topics1stGrade } from '../data/topics1stGrade';
 import { topics2ndGrade } from '../data/topics2ndGrade';
@@ -303,9 +303,9 @@ export const ModernStatsView: React.FC<ModernStatsViewProps> = ({
   // View mode: 'tek_kisilik' | 'dogru_yanlis' | 'gruplar' | 'ogrenciler'
   const [viewMode, setViewMode] = useState<'tek_kisilik' | 'dogru_yanlis' | 'gruplar' | 'ogrenciler'>('tek_kisilik');
 
-  const [localStudents, setLocalStudents] = useState<Student[]>(students || []);
+  const [localStudents, setLocalStudents] = useState<Student[]>(() => deduplicateStudents(students || []));
   useEffect(() => {
-    setLocalStudents(students || []);
+    setLocalStudents(deduplicateStudents(students || []));
   }, [students]);
 
   const [localSingleStats, setLocalSingleStats] = useState<SinglePlayerStatsRecord | undefined>(singleStatsData);
@@ -325,12 +325,16 @@ export const ModernStatsView: React.FC<ModernStatsViewProps> = ({
 
   const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
   const [studentSearch, setStudentSearch] = useState<string>('');
-  const [homeworkMap, setHomeworkMap] = useState<Record<string, any>>(() => loadHomeworkData());
+  const [homeworkMap, setHomeworkMap] = useState<Record<string, any>>(() => 
+    loadHomeworkData(currentUser?.uid || auth?.currentUser?.uid, currentUser?.email || auth?.currentUser?.email)
+  );
   const todayStr = getTodayDateString();
 
   useEffect(() => {
-    setHomeworkMap(loadHomeworkData());
-  }, [viewMode, currentGrade]);
+    setHomeworkMap(
+      loadHomeworkData(currentUser?.uid || auth?.currentUser?.uid, currentUser?.email || auth?.currentUser?.email)
+    );
+  }, [viewMode, currentGrade, currentUser]);
 
   const gradeStudents = localStudents.filter(s => s.grade === currentGrade);
   const studentTotalCorrect = gradeStudents.reduce((sum, s) => sum + (s.totalCorrect || 0), 0);

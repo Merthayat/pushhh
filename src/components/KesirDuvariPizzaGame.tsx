@@ -32,6 +32,8 @@ interface KesirDuvariPizzaGameProps {
   onSelectStudent?: (id: string | null) => void;
   onSelectStudentForPlayer?: (pIdx: number, id: string | null) => void;
   onOpenRosterModal?: (grade?: number) => void;
+  onQuestionAnswered?: (isCorrect: boolean, pIdx?: number) => void;
+  onGameCompleted?: (winnerIdx: number | null, pCount?: number) => void;
 }
 
 type KesirSubTab = 'pizza' | 'duvar';
@@ -47,7 +49,9 @@ export const KesirDuvariPizzaGame: React.FC<KesirDuvariPizzaGameProps> = ({
   selectedStudentId,
   onSelectStudent,
   onSelectStudentForPlayer,
-  onOpenRosterModal
+  onOpenRosterModal,
+  onQuestionAnswered,
+  onGameCompleted
 }) => {
   const [subTab, setSubTab] = useState<KesirSubTab>('pizza');
 
@@ -127,6 +131,7 @@ export const KesirDuvariPizzaGame: React.FC<KesirDuvariPizzaGameProps> = ({
     const isNumMatch = selectedSlices.length === targetNumerator;
 
     if (isDenomMatch && isNumMatch) {
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 15);
       setStreak(st => st + 1);
@@ -139,7 +144,10 @@ export const KesirDuvariPizzaGame: React.FC<KesirDuvariPizzaGameProps> = ({
       } catch {}
 
       if (questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(0, 1);
+        }, 1200);
       } else {
         setTimeout(() => {
           setQuestionCount(q => q + 1);
@@ -147,6 +155,7 @@ export const KesirDuvariPizzaGame: React.FC<KesirDuvariPizzaGameProps> = ({
         }, 1500);
       }
     } else {
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -154,7 +163,10 @@ export const KesirDuvariPizzaGame: React.FC<KesirDuvariPizzaGameProps> = ({
       if (playMp3) playMp3('/hata.mp3');
 
       if (newMistakes >= 3 || questionCount >= 10) {
-        setTimeout(() => setIsGameOver(true), 1200);
+        setTimeout(() => {
+          setIsGameOver(true);
+          onGameCompleted?.(null, 1);
+        }, 1200);
       }
     }
   };

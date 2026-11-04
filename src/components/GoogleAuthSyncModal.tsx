@@ -24,11 +24,13 @@ import {
   FileJson,
   FileCheck,
   FolderDown,
-  Layers
+  Layers,
+  Clock
 } from 'lucide-react';
 import { User } from '../firebase';
 import { 
   signInWithGoogle, 
+  signInWithRedirectGoogle,
   signOutUser, 
   formatFriendlyDate,
   isFirestoreQuotaExceeded,
@@ -37,14 +39,23 @@ import {
   getCloudSyncMode,
   saveUserDataToCloud
 } from '../services/cloudSyncService';
+import { getDailyBackupStatus } from '../services/autoDailyBackupService';
 import { Student } from '../types/student';
 import { ClassCountersData, loadCounters } from '../utils/counterStorage';
-import { DEFAULT_STUDENTS, saveStudents } from '../utils/studentStore';
+import { 
+  DEFAULT_STUDENTS, 
+  saveStudents,
+  isOlcaytoUser,
+  OLCAYTO_2A_STUDENTS,
+  getDefaultStudentsForUser,
+  sanitizeStudentsForUser
+} from '../utils/studentStore';
 import { 
   loadHomeworkData, 
   saveHomeworkData, 
   mergeHomeworkData, 
-  DEFAULT_CLASS_23_HOMEWORK_DATA 
+  DEFAULT_CLASS_23_HOMEWORK_DATA,
+  sanitizeHomeworkForUser
 } from '../utils/homeworkStore';
 import { 
   downloadDataToPC, 
@@ -144,6 +155,29 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
         });
       }
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRedirectSignIn = async () => {
+    setIsLoading(true);
+    setActionMessage(null);
+    setUnauthorizedDomain(null);
+    playMp3?.('/op.mp3');
+    try {
+      await signInWithRedirectGoogle();
+    } catch (err: any) {
+      const code = err?.code || '';
+      const msg = err?.message || '';
+      if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
+        const domain = typeof window !== 'undefined' ? window.location.hostname : '';
+        setUnauthorizedDomain(domain || 'alan-adiniz.com');
+      } else {
+        setActionMessage({
+          text: err.message || 'Yönlendirme başlatılamadı. Lütfen tekrar deneyin.',
+          type: 'error'
+        });
+      }
       setIsLoading(false);
     }
   };
@@ -590,153 +624,33 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
               </div>
             </div>
 
-            {/* Kota Tasarruf Modu Seçici */}
-            <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-700/80 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  Kota Tasarruf Modu
-                </span>
-                <span className="text-[10px] text-cyan-400/90 font-medium">
-                  {(syncMode || getCloudSyncMode()) === 'manual' ? 'Sıfır Otomatik Kota Tüketimi' : '%90+ Kota Tasarruflu'}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onSyncModeChange?.('smart')}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    (syncMode || getCloudSyncMode()) === 'smart'
-                      ? 'bg-blue-600/20 border-blue-400 text-blue-200 shadow-sm'
-                      : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <div className="text-xs font-bold text-white flex items-center gap-1">
-                    <span>⚡ Akıllı Tasarruf</span>
-                    {(syncMode || getCloudSyncMode()) === 'smart' && <Check className="w-3 h-3 text-cyan-400 ml-auto" />}
+            {/* Otomatik Saat 10:00 Yedekleme Bilgilendirme Kartı */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/70 via-teal-950/70 to-slate-900 border-2 border-emerald-500/50 text-emerald-200 shadow-lg space-y-2.5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/50 flex items-center justify-center shrink-0 text-emerald-300 shadow-inner mt-0.5">
+                  <Clock className="w-5 h-5 text-emerald-400 animate-pulse" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-black text-white">⏰ Her Sabah Saat 10:00 Otomatik Yedekleme</span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/50">
+                      AKTİF & ÇALIŞIYOR
+                    </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                    Değişiklikleri toplu eşitler, gereksiz yazmayı önler.
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => onSyncModeChange?.('manual')}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    (syncMode || getCloudSyncMode()) === 'manual'
-                      ? 'bg-amber-500/20 border-amber-400 text-amber-200 shadow-sm'
-                      : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
-                  }`}
-                >
-                  <div className="text-xs font-bold text-white flex items-center gap-1">
-                    <span>🔒 Yalnızca Manuel</span>
-                    {(syncMode || getCloudSyncMode()) === 'manual' && <Check className="w-3 h-3 text-amber-400 ml-auto" />}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">
-                    Sadece "Şimdi Buluta Yedekle"ye basınca yazar.
-                  </div>
-                </button>
+                  <p className="text-xs text-emerald-200/90 mt-1 leading-relaxed">
+                    Sınıf listeniz, çözülen sorular ve tüm verileriniz her sabah saat <strong>10:00</strong>'da hiçbir butona basmanıza gerek kalmadan otomatik olarak güvenle buluta ve cihazınıza yedeklenir.
+                  </p>
+                  {getDailyBackupStatus(currentUser?.uid).lastBackupTimeFormatted && (
+                    <div className="text-[11px] text-emerald-300/80 font-semibold mt-2 pt-1.5 border-t border-emerald-500/20 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Son Başarılı Yedekleme: <strong>{getDailyBackupStatus(currentUser?.uid).lastBackupTimeFormatted}</strong></span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Sync Action Buttons */}
-            <div className="space-y-2 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  onClick={handleUpload}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-cyan-500/20 transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                >
-                  <CloudUpload className="w-4 h-4" />
-                  Şimdi Buluta Yedekle
-                </button>
-
-                <button
-                  onClick={handleDownload}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs sm:text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                >
-                  <CloudDownload className="w-4 h-4" />
-                  Buluttan Verileri Çek
-                </button>
-              </div>
-
-              {onRecoverStudents && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    setIsLoading(true);
-                    setActionMessage(null);
-                    playMp3?.('/op.mp3');
-                    try {
-                      await onRecoverStudents();
-                      playMp3?.('/coin.mp3');
-                      setActionMessage({
-                        text: 'Öğrenci listeniz ve istatistikleriniz yedekten başarıyla geri getirildi!',
-                        type: 'success'
-                      });
-                    } catch (err: any) {
-                      setActionMessage({
-                        text: 'Kurtarma sırasında bir hata oluştu: ' + (err?.message || 'Bilinmeyen hata'),
-                        type: 'error'
-                      });
-                    } finally {
-                      setIsLoading(false);
-                    }
-                  }}
-                  disabled={isLoading}
-                  className="w-full flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-                >
-                  <ArchiveRestore className="w-4 h-4 text-amber-400 shrink-0" />
-                  <div className="text-left">
-                    <span className="block font-bold">📥 Kayıtlı Öğrenci & Puanları Kurtar / Geri Getir</span>
-                    <span className="block text-[10px] text-amber-300/70 font-normal">Bulut ve cihaz kasasındaki verilerinizi birleştirip korur</span>
-                  </div>
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsLoading(true);
-                  setActionMessage(null);
-                  playMp3?.('/op.mp3');
-                  try {
-                    const nonG2 = students.filter(s => s.grade !== 2);
-                    const realG2 = DEFAULT_STUDENTS.filter(s => s.grade === 2);
-                    const fullList = [...nonG2, ...realG2];
-                    onStudentsUpdated?.(fullList);
-                    saveStudents(fullList, currentUser?.uid);
-                    
-                    const currentHw = loadHomeworkData(currentUser?.uid);
-                    const mergedHw = mergeHomeworkData(currentHw, DEFAULT_CLASS_23_HOMEWORK_DATA);
-                    saveHomeworkData(mergedHw, currentUser?.uid);
-
-                    if (currentUser) {
-                      await saveUserDataToCloud(currentUser.uid, fullList, currentCounters, selectedStudentIds, currentUser.email, mergedHw, true);
-                    }
-                    playMp3?.('/coin.mp3');
-                    setActionMessage({
-                      text: `🎒 23 Kişilik gerçek sınıf listeniz (${realG2.length} öğrenci) ve ödev kayıtları başarıyla geri yüklendi!`,
-                      type: 'success'
-                    });
-                  } catch (err: any) {
-                    setActionMessage({
-                      text: 'Yükleme sırasında hata: ' + (err?.message || 'Bilinmeyen hata'),
-                      type: 'error'
-                    });
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs sm:text-sm font-black shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-              >
-                <Users className="w-4 h-4 text-emerald-200" />
-                <span>🎒 23 Kişilik Gerçek Sınıfımı Yükle (2. Sınıf)</span>
-              </button>
-
+            <div className="pt-1">
               {confirmSignOut ? (
                 <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-200">
                   <span className="text-[11px] font-semibold">Çıkış yapmak istediğinize emin misiniz?</span>
@@ -796,78 +710,6 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
               </ul>
             </div>
 
-            <button
-              type="button"
-              onClick={async () => {
-                setIsLoading(true);
-                setActionMessage(null);
-                playMp3?.('/op.mp3');
-                try {
-                  const nonG2 = students.filter(s => s.grade !== 2);
-                  const realG2 = DEFAULT_STUDENTS.filter(s => s.grade === 2);
-                  const fullList = [...nonG2, ...realG2];
-                  onStudentsUpdated?.(fullList);
-                  saveStudents(fullList, null);
-                  
-                  const currentHw = loadHomeworkData(null);
-                  const mergedHw = mergeHomeworkData(currentHw, DEFAULT_CLASS_23_HOMEWORK_DATA);
-                  saveHomeworkData(mergedHw, null);
-
-                  playMp3?.('/coin.mp3');
-                  setActionMessage({
-                    text: `🎒 23 Kişilik gerçek sınıf listeniz (${realG2.length} öğrenci) ve ödev kayıtları başarıyla yüklendi!`,
-                    type: 'success'
-                  });
-                } catch (err: any) {
-                  setActionMessage({
-                    text: 'Yükleme sırasında hata: ' + (err?.message || 'Bilinmeyen hata'),
-                    type: 'error'
-                  });
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white text-xs sm:text-sm font-black shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-            >
-              <Users className="w-4 h-4 text-emerald-200" />
-              <span>🎒 23 Kişilik Gerçek Sınıfımı Yükle (2. Sınıf)</span>
-            </button>
-
-            {onRecoverStudents && (
-              <button
-                type="button"
-                onClick={async () => {
-                  setIsLoading(true);
-                  setActionMessage(null);
-                  playMp3?.('/op.mp3');
-                  try {
-                    await onRecoverStudents();
-                    playMp3?.('/coin.mp3');
-                    setActionMessage({
-                      text: 'Cihazdaki kayıtlı öğrencileriniz ve istatistikleriniz başarıyla geri getirildi!',
-                      type: 'success'
-                    });
-                  } catch (err: any) {
-                    setActionMessage({
-                      text: 'Kurtarma sırasında bir hata oluştu: ' + (err?.message || 'Bilinmeyen hata'),
-                      type: 'error'
-                    });
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-              >
-                <ArchiveRestore className="w-4 h-4 text-amber-400 shrink-0" />
-                <div className="text-left">
-                  <span className="block font-bold">📥 Cihazdaki Kayıtlı Öğrencileri Kurtar / Geri Getir</span>
-                  <span className="block text-[10px] text-amber-300/70 font-normal">Cihaz kasasındaki yedekleri geri yükler</span>
-                </div>
-              </button>
-            )}
-
             {/* Google Sign In Button */}
             <button
               onClick={handleSignIn}
@@ -898,6 +740,17 @@ export const GoogleAuthSyncModal: React.FC<GoogleAuthSyncModalProps> = ({
                 </svg>
               )}
               <span>{isLoading ? 'Giriş Yapılıyor...' : 'Google ile Giriş Yap'}</span>
+            </button>
+
+            {/* Alternative Direct Redirect Login Button (Bypasses popup blockers) */}
+            <button
+              onClick={handleRedirectSignIn}
+              disabled={isLoading}
+              type="button"
+              className="w-full py-2.5 px-3 rounded-2xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600/80 text-cyan-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span>Pop-up açılmıyorsa: Sayfayı Yönlendirerek Giriş Yap</span>
             </button>
           </div>
         )}

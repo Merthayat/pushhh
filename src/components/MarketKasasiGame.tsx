@@ -33,6 +33,8 @@ interface MarketKasasiGameProps {
   onSelectStudent?: (id: string | null) => void;
   onSelectStudentForPlayer?: (pIdx: number, id: string | null) => void;
   onOpenRosterModal?: (grade?: number) => void;
+  onQuestionAnswered?: (isCorrect: boolean, pIdx?: number) => void;
+  onGameCompleted?: (winnerIdx: number | null, pCount?: number) => void;
 }
 
 type MarketMode = 'musteri' | 'kasiyer'; // musteri: parayı öde, kasiyer: para üstü ver
@@ -152,7 +154,9 @@ export const MarketKasasiGame: React.FC<MarketKasasiGameProps> = ({
   selectedStudentId,
   onSelectStudent,
   onSelectStudentForPlayer,
-  onOpenRosterModal
+  onOpenRosterModal,
+  onQuestionAnswered,
+  onGameCompleted
 }) => {
   // Sınıf seviyesi (1, 2, 3, 4)
   const [activeGrade, setActiveGrade] = useState<number>(grade || 2);
@@ -285,6 +289,7 @@ export const MarketKasasiGame: React.FC<MarketKasasiGameProps> = ({
 
     if (diff < 0.01) {
       // Doğru Cevap
+      onQuestionAnswered?.(true, 0);
       setFeedback('correct');
       setScore(s => s + 15);
       setStreak(st => st + 1);
@@ -299,6 +304,7 @@ export const MarketKasasiGame: React.FC<MarketKasasiGameProps> = ({
       if (questionCount >= 10) {
         setTimeout(() => {
           setIsGameOver(true);
+          onGameCompleted?.(0, 1);
         }, 1200);
       } else {
         setTimeout(() => {
@@ -308,6 +314,7 @@ export const MarketKasasiGame: React.FC<MarketKasasiGameProps> = ({
       }
     } else {
       // Yanlış Cevap
+      onQuestionAnswered?.(false, 0);
       setFeedback('wrong');
       setStreak(0);
       const newMistakes = mistakes + 1;
@@ -319,10 +326,12 @@ export const MarketKasasiGame: React.FC<MarketKasasiGameProps> = ({
         // 3 Hata hakkı doldu
         setTimeout(() => {
           setIsGameOver(true);
+          onGameCompleted?.(null, 1);
         }, 1200);
       } else if (questionCount >= 10) {
         setTimeout(() => {
           setIsGameOver(true);
+          onGameCompleted?.(null, 1);
         }, 1200);
       }
     }

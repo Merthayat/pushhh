@@ -17,6 +17,7 @@ import {
 import { User } from '../firebase';
 import { Student } from '../types/student';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
+import { deduplicateStudents } from '../utils/studentStore';
 import {
   loadHomeworkData,
   saveHomeworkData,
@@ -201,10 +202,44 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
   }, [isOpen, initialGrade]);
 
-  // Seçili sınıftaki öğrenciler (Yalnızca öğretmenin listesindeki gerçek öğrenciler)
-  const currentGradeStudents = useMemo(() => {
-    return students.filter(s => s.grade === selectedGrade);
+  // Seçili sınıf seviyesindeki şubeler (örn: 2-A, 2-C)
+  const availableClasses = useMemo(() => {
+    const classes = new Set<string>();
+    deduplicateStudents(students)
+      .filter(s => s.grade === selectedGrade)
+      .forEach(s => {
+        const cls = (s.className || `${s.grade}-A`).trim().toUpperCase();
+        if (cls) classes.add(cls);
+      });
+    return Array.from(classes).sort();
   }, [students, selectedGrade]);
+
+  const [selectedClass, setSelectedClass] = useState<string>('2-C');
+
+  // Sınıf seviyesi veya şubeler değiştiğinde uygun bir şubeyi seçili yap
+  useEffect(() => {
+    if (availableClasses.length > 0) {
+      if (!availableClasses.includes(selectedClass)) {
+        const defaultBranch = 
+          availableClasses.find(c => c.includes('C')) || 
+          availableClasses.find(c => c.includes('A')) || 
+          availableClasses[0];
+        setSelectedClass(defaultBranch);
+      }
+    }
+  }, [availableClasses, selectedGrade, selectedClass]);
+
+  // Seçili sınıftaki ve şubedeki öğrenciler (Farklı şubeler asla aynı akvaryumda karışmaz!)
+  const currentGradeStudents = useMemo(() => {
+    return deduplicateStudents(students).filter(s => {
+      if (s.grade !== selectedGrade) return false;
+      if (availableClasses.length > 1) {
+        const sClass = (s.className || `${s.grade}-A`).trim().toUpperCase();
+        return sClass === selectedClass;
+      }
+      return true;
+    });
+  }, [students, selectedGrade, selectedClass, availableClasses]);
 
   const [homeworkMap, setHomeworkMap] = useState<Record<string, StudentHomeworkData>>({});
   const [fishes, setFishes] = useState<FishState[]>([]);
@@ -251,7 +286,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
   // Verileri yükle & senkronize et (Sadece modal açıldığında veya sınıf değiştiğinde 1 kez çalışır)
   useEffect(() => {
     if (!isOpen) return;
-    const existing = loadHomeworkData(currentUser?.uid);
+    const existing = loadHomeworkData(currentUser?.uid, currentUser?.email);
     const synced = syncHomeworkWithStudents(currentGradeStudents, existing);
     setHomeworkMap(synced);
 
@@ -259,7 +294,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     const existingCount = Object.keys(existing).length;
     const syncedCount = Object.keys(synced).length;
     if (syncedCount > existingCount) {
-      saveHomeworkData(synced, currentUser?.uid);
+      saveHomeworkData(synced, currentUser?.uid, currentUser?.email);
     }
 
     // Balık fizik durumlarını ref'e hazırla
@@ -437,7 +472,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
 
     // Bugün ilk defa yapılıyorsa tamamla
-    const res = completeHomeworkToday(fish.studentId, fish.name, 0, currentUser?.uid);
+    const res = completeHomeworkToday(fish.studentId, fish.name, 0, currentUser?.uid, currentUser?.email);
     if (res.success) {
       if (onTriggerCloudSync) {
         onTriggerCloudSync();
@@ -463,7 +498,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
       } catch {}
 
       // State güncelle (Tek bir kez re-render tetikler)
-      const updated = loadHomeworkData(currentUser?.uid);
+      const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
       setHomeworkMap(updated);
 
       const studentIdx = currentGradeStudents.findIndex(st => st.id === fish.studentId);
@@ -522,13 +557,13 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
 
   // Öğretmen Modunda Bugünkü Ödevi Geri Alma
   const handleUndo = useCallback((studentId: string, studentName: string) => {
-    const success = undoTodayHomework(studentId, currentUser?.uid);
+    const success = undoTodayHomework(studentId, currentUser?.uid, currentUser?.email);
     if (success) {
       if (onTriggerCloudSync) {
         onTriggerCloudSync();
       }
       if (soundEnabled && playMp3) playMp3('/hata.mp3');
-      const updated = loadHomeworkData(currentUser?.uid);
+      const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
       setHomeworkMap(updated);
 
       setFishes(prev =>
@@ -591,7 +626,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h2 className="font-black text-xs sm:text-sm md:text-base text-cyan-200 tracking-wide truncate">
-                  {selectedGrade}. SINIF ÖDEV AKVARYUMU
+                  {selectedGrade}. SINIF {availableClasses.length > 1 ? `(${selectedClass}) ` : ''}ÖDEV AKVARYUMU
                 </h2>
                 <span className="hidden xl:inline-block px-1.5 py-0.5 rounded-full text-[9px] font-extrabold bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shrink-0">
                   Canlı Takip
@@ -603,24 +638,57 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
             </div>
           </div>
 
-          {/* ORTA: 1, 2, 3 VE 4. SINIF SEÇİCİ SEKMELERİ */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-[#010e1a] p-0.5 sm:p-1 rounded-xl border border-cyan-500/40 shrink-0">
-            {[1, 2, 3, 4].map((grade) => {
-              const isSelected = selectedGrade === grade;
-              return (
-                <button
-                  key={grade}
-                  onClick={() => setSelectedGrade(grade)}
-                  className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-cyan-500 text-slate-950 shadow scale-105'
-                      : 'text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-950/60'
-                  }`}
-                >
-                  {grade}. Sınıf
-                </button>
-              );
-            })}
+          {/* ORTA: 1, 2, 3 VE 4. SINIF + ŞUBE SEÇİCİ SEKMELERİ */}
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Sınıf Seviyesi Seçici */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-[#010e1a] p-0.5 sm:p-1 rounded-xl border border-cyan-500/40 shrink-0">
+              {[1, 2, 3, 4].map((grade) => {
+                const isSelected = selectedGrade === grade;
+                return (
+                  <button
+                    key={grade}
+                    onClick={() => setSelectedGrade(grade)}
+                    className={`px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-cyan-500 text-slate-950 shadow scale-105'
+                        : 'text-cyan-300/70 hover:text-cyan-200 hover:bg-cyan-950/60'
+                    }`}
+                  >
+                    {grade}. Sınıf
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Şube Seçici (Aynı sınıf seviyesinde birden fazla şube varsa - örn: 2-A ve 2-C asla karışmaz!) */}
+            {availableClasses.length > 1 && (
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-amber-950/40 p-0.5 sm:p-1 rounded-xl border border-amber-500/50 shadow-inner shrink-0">
+                <span className="text-[10px] font-black text-amber-300/90 px-1 hidden md:inline">
+                  Şube:
+                </span>
+                {availableClasses.map((cls) => {
+                  const isSelected = selectedClass === cls;
+                  const count = students.filter(s => s.grade === selectedGrade && (s.className || `${s.grade}-A`).trim().toUpperCase() === cls).length;
+                  return (
+                    <button
+                      key={cls}
+                      onClick={() => setSelectedClass(cls)}
+                      className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                        isSelected
+                          ? 'bg-amber-400 text-slate-950 shadow font-black scale-105'
+                          : 'text-amber-200/80 hover:text-amber-100 hover:bg-amber-900/50'
+                      }`}
+                      title={`${cls} Şubesi (${count} Balık)`}
+                    >
+                      <span>{cls}</span>
+                      <span className={`text-[9px] px-1 rounded-full ${isSelected ? 'bg-slate-900/30 text-slate-900 font-bold' : 'bg-amber-500/25 text-amber-300'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SAĞ: HIZLI İŞLEM BUTONLARI */}
