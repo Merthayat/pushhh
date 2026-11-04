@@ -377,6 +377,13 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     const updatePhysics = (now: number) => {
       if (!isRunning) return;
 
+      // Öğretmen düzenleme modunda balıkların koordinatını sabit tut.
+      if (teacherMode) {
+        lastTime = now;
+        requestRef.current = requestAnimationFrame(updatePhysics);
+        return;
+      }
+
       // Akıllı tahta CPU optimizasyonu: 30 FPS hız limiti ile balık fiziği
       if (!lastTime || now - lastTime >= 33) {
         const dt = Math.min(now - (lastTime || now), 64); // Frame drop durumunda fırlamayı önle
@@ -451,7 +458,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
       isRunning = false;
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isOpen]);
+  }, [isOpen, teacherMode]);
 
   // Balığa Tıklama - Günlük Ödev Onayı
   const handleFishClick = useCallback((fish: FishState, event: React.MouseEvent) => {
@@ -996,7 +1003,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
                     }
                   }}
                   className={`relative flex items-center justify-center select-none ${
-                    fish.isHappy ? 'animate-bounce' : ''
+                    fish.isHappy && !teacherMode ? 'animate-bounce' : ''
                   }`}
                   style={{
                     width: `${fish.fishWidth}px`,
@@ -1012,7 +1019,7 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
                     className="w-full h-full relative"
                     style={{
                       transformOrigin: '22% 50%',
-                      animation: `fishTailWag ${fish.animationDuration} ease-in-out infinite`,
+                      animation: teacherMode ? 'none' : `fishTailWag ${fish.animationDuration} ease-in-out infinite`,
                       animationDelay: fish.animationDelay,
                       willChange: 'transform'
                     }}
@@ -1036,39 +1043,40 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
                 {/* Öğretmen Modunda puan düzenleme ve bugünkü ödevi geri alma */}
                 {teacherMode && (
                   <div
-                    className="mt-1 flex items-center gap-1 rounded-lg border border-purple-300/40 bg-slate-950/90 p-1 shadow-lg z-30"
+                    className="relative z-40 mt-1 flex items-center gap-1.5 rounded-xl border border-purple-300/50 bg-slate-950/95 p-1.5 shadow-xl"
                     onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
                       onClick={() => handleAdjustPoints(fish, -1)}
                       disabled={fish.homeworkCount <= 0}
-                      className="flex h-6 w-6 items-center justify-center rounded-md border border-rose-400/60 bg-rose-600/80 text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-rose-300 bg-rose-600 text-white shadow-md hover:bg-rose-500 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                       title="Balık puanını 1 azalt"
                       aria-label={`${fish.name} puanını 1 azalt`}
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-5 w-5" />
                     </button>
-                    <span className="min-w-[3.25rem] text-center text-[9px] font-extrabold text-amber-200">
+                    <span className="min-w-[4rem] whitespace-nowrap text-center text-[10px] font-extrabold text-amber-200">
                       {fish.homeworkCount} puan
                     </span>
                     <button
                       type="button"
                       onClick={() => handleAdjustPoints(fish, 1)}
-                      className="flex h-6 w-6 items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-600/80 text-white hover:bg-emerald-500"
+                      className="flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-emerald-300 bg-emerald-600 text-white shadow-md hover:bg-emerald-500 active:scale-95"
                       title="Balık puanını 1 artır"
                       aria-label={`${fish.name} puanını 1 artır`}
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-5 w-5" />
                     </button>
                     {isCompletedToday && (
                       <button
                         type="button"
                         onClick={() => handleUndo(fish.studentId, fish.name)}
-                        className="ml-0.5 flex items-center gap-0.5 rounded bg-red-600 px-1.5 py-1 text-[9px] font-bold text-white hover:bg-red-500"
+                        className="ml-0.5 flex h-11 shrink-0 touch-manipulation items-center gap-1 rounded-lg bg-red-600 px-2.5 text-[10px] font-bold text-white shadow-md hover:bg-red-500 active:scale-95"
                         title="Bugünkü ödevi geri al"
                       >
-                        <RotateCcw className="h-2.5 w-2.5" />
+                        <RotateCcw className="h-4 w-4" />
                         Geri Al
                       </button>
                     )}
