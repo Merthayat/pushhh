@@ -12,7 +12,9 @@ import {
   Maximize2,
   Minimize2,
   Cloud,
-  CloudCheck
+  CloudCheck,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { User } from '../firebase';
 import { Student } from '../types/student';
@@ -23,6 +25,7 @@ import {
   saveHomeworkData,
   syncHomeworkWithStudents,
   completeHomeworkToday,
+  adjustHomeworkPoints,
   undoTodayHomework,
   getTodayDateString,
   calculateFishScale,
@@ -601,6 +604,46 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
     }
   }, [soundEnabled, playMp3, homeworkMap, currentUser, onTriggerCloudSync]);
 
+  // Öğretmen düzenleme modunda balık puanını anında ve kalıcı olarak değiştir.
+  const handleAdjustPoints = useCallback((fish: FishState, delta: number) => {
+    const result = adjustHomeworkPoints(
+      fish.studentId,
+      delta,
+      currentUser?.uid,
+      currentUser?.email
+    );
+    if (!result.success) return;
+
+    onTriggerCloudSync?.();
+    const updated = loadHomeworkData(currentUser?.uid, currentUser?.email);
+    setHomeworkMap(updated);
+
+    const studentIdx = currentGradeStudents.findIndex(student => student.id === fish.studentId);
+    const modelIndex = studentIdx >= 0 ? studentIdx : fishes.findIndex(item => item.studentId === fish.studentId);
+    const updatedCutout = getCutoutFishInfo(modelIndex, result.newCount);
+    setFishes(prev => prev.map(item => item.studentId === fish.studentId ? {
+      ...item,
+      homeworkCount: result.newCount,
+      fishWidth: updatedCutout.calculatedWidth,
+      imageSrc: updatedCutout.imageSrc,
+      speciesName: updatedCutout.speciesName,
+      stageName: updatedCutout.stageName,
+      stageIndex: updatedCutout.stageIndex,
+      badge: updatedCutout.badge,
+      neededForNext: updatedCutout.neededForNext,
+      nextStageName: updatedCutout.nextStageName
+    } : item));
+
+    setActivePopup({
+      studentName: fish.name,
+      message: `Balık puanı ${delta > 0 ? 'artırıldı' : 'azaltıldı'} ve kaydedildi.`,
+      type: 'info',
+      count: result.newCount,
+      badge: updatedCutout.badge,
+      title: `${updatedCutout.speciesName} • ${updatedCutout.stageName}`
+    });
+  }, [currentUser, currentGradeStudents, fishes, onTriggerCloudSync]);
+
   // İstatistik hesaplamaları
   const totalStudents = fishes.length;
   const completedTodayCount = fishes.filter(f => f.lastCompletedDate === todayStr).length;
@@ -990,19 +1033,46 @@ export const OdevAkvaryumuModal: React.FC<OdevAkvaryumuModalProps> = ({
                   )}
                 </div>
 
-                {/* Öğretmen Modunda Geri Al Butonu */}
-                {teacherMode && isCompletedToday && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUndo(fish.studentId, fish.name);
-                    }}
-                    className="mt-1 px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold border border-red-400 flex items-center gap-0.5 cursor-pointer z-30 shadow"
-                    title="Bugünkü ödevi geri al"
+                {/* Öğretmen Modunda puan düzenleme ve bugünkü ödevi geri alma */}
+                {teacherMode && (
+                  <div
+                    className="mt-1 flex items-center gap-1 rounded-lg border border-purple-300/40 bg-slate-950/90 p-1 shadow-lg z-30"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <RotateCcw className="w-2.5 h-2.5" />
-                    Geri Al
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(fish, -1)}
+                      disabled={fish.homeworkCount <= 0}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-rose-400/60 bg-rose-600/80 text-white hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      title="Balık puanını 1 azalt"
+                      aria-label={`${fish.name} puanını 1 azalt`}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="min-w-[3.25rem] text-center text-[9px] font-extrabold text-amber-200">
+                      {fish.homeworkCount} puan
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleAdjustPoints(fish, 1)}
+                      className="flex h-6 w-6 items-center justify-center rounded-md border border-emerald-400/60 bg-emerald-600/80 text-white hover:bg-emerald-500"
+                      title="Balık puanını 1 artır"
+                      aria-label={`${fish.name} puanını 1 artır`}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    {isCompletedToday && (
+                      <button
+                        type="button"
+                        onClick={() => handleUndo(fish.studentId, fish.name)}
+                        className="ml-0.5 flex items-center gap-0.5 rounded bg-red-600 px-1.5 py-1 text-[9px] font-bold text-white hover:bg-red-500"
+                        title="Bugünkü ödevi geri al"
+                      >
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        Geri Al
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );

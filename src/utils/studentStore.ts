@@ -144,7 +144,7 @@ export function sanitizeStudentsForUser(
   userEmail?: string | null
 ): Student[] {
   const effectiveEmail = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
-  if (!Array.isArray(students) || students.length === 0) {
+  if (!Array.isArray(students)) {
     return getDefaultStudentsForUser(effectiveEmail);
   }
 
@@ -234,7 +234,7 @@ const OLCAYTO_FULL_NAME_BY_ID: Record<string, string> = {
   'std_g2_8': 'Eslem Deri',
   'std_g2_9': 'Eymen Toprak',
   'std_g2_10': 'Güneş Karadoğan',
-  'std_g2_11': 'Hatice Kübra',
+  'std_g2_11': 'Hatice Kübra Demir',
   'std_g2_12': 'Harun Ali Gökcan',
   'std_g2_13': 'Harun Yıldırım',
   'std_g2_14': 'Miraç Kütük',
@@ -581,9 +581,9 @@ export function loadFromMultiUserVault(identifier: string): Student[] | null {
     if (!raw) return null;
     const vault: Record<string, VaultUserRecord> = JSON.parse(raw);
     const record = vault[cleanId];
-    return record && Array.isArray(record.students) && record.students.length > 0
-      ? record.students
-      : null;
+    // An explicitly saved empty roster is meaningful: it records that the
+    // teacher removed every student, so do not treat it as a missing backup.
+    return record && Array.isArray(record.students) ? record.students : null;
   } catch {
     return null;
   }
@@ -621,12 +621,14 @@ export function recoverLegacyOrBackupStudents(
     // 1. Merge from vault for this user only
     if (userId) {
       const fromVaultUid = loadFromMultiUserVault(userId);
+      if (fromVaultUid && fromVaultUid.length === 0) return [];
       if (fromVaultUid && fromVaultUid.length > 0) {
         bestMerged = mergeStudentLists(bestMerged, fromVaultUid);
       }
     }
     if (cleanEmail) {
       const fromVaultEmail = loadFromMultiUserVault(cleanEmail);
+      if (fromVaultEmail && fromVaultEmail.length === 0) return [];
       if (fromVaultEmail && fromVaultEmail.length > 0) {
         bestMerged = mergeStudentLists(bestMerged, fromVaultEmail);
       }
@@ -746,7 +748,12 @@ export function loadStudents(userId?: string | null, userEmail?: string | null):
       } catch {}
     }
 
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
+      // Empty arrays are valid saved rosters, not an instruction to reseed.
+      if (parsed.length === 0) {
+        localStorage.setItem(initKey, 'true');
+        return [];
+      }
       let mapped: Student[] = parsed.map((s: any) => ({
         ...s,
         grade: (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2
