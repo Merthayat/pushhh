@@ -1,10 +1,29 @@
 import { auth } from '../firebase';
 import { StudentHomeworkData } from '../types/homeworkAquarium';
 import { Student } from '../types/student';
+import { 
+  OLCAYTO_EMAIL, 
+  OLCAYTO_2A_NAMES_SET, 
+  OLCAYTO_2A_STUDENTS, 
+  isOlcaytoUser,
+  isMushatUser,
+  isBanuUser
+} from './studentStore';
+import { MUSHAT_HOMEWORK_DATA } from '../data/mushat3cStudents';
+import { BANU_HOMEWORK_DATA } from '../data/banu2aStudents';
 
 const LEGACY_STORAGE_KEY = 'odev_akvaryumu_v1';
 const GLOBAL_BACKUP_KEY = 'odev_akvaryumu_backup_all';
 let currentStoreUserId: string | null = null;
+let currentStoreHomeworkUserEmail: string | null = null;
+
+// Öğretmenin manuel puan düzeltmesinin bulut/yerel birleştirmelerinde korunması için.
+type HomeworkDataWithUpdatedAt = StudentHomeworkData & { updatedAt?: string };
+
+export function setActiveStoreHomeworkUser(userId: string | null, userEmail?: string | null): void {
+  currentStoreUserId = userId;
+  currentStoreHomeworkUserEmail = userEmail ? userEmail.trim().toLowerCase() : null;
+}
 
 export function setActiveStoreHomeworkUserId(userId: string | null): void {
   currentStoreUserId = userId;
@@ -12,6 +31,41 @@ export function setActiveStoreHomeworkUserId(userId: string | null): void {
 
 export function getActiveStoreHomeworkUserId(): string | null {
   return currentStoreUserId;
+}
+
+export function getActiveStoreHomeworkUserEmail(): string | null {
+  return currentStoreHomeworkUserEmail;
+}
+
+export function sanitizeHomeworkForUser(
+  hwData: Record<string, StudentHomeworkData> = {},
+  userEmail?: string | null
+): Record<string, StudentHomeworkData> {
+  const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : currentStoreHomeworkUserEmail;
+  if (isOlcaytoUser(cleanEmail)) {
+    // Olcayto Hoca için: 2-C sınıfının tüm ödev kayıtları EKSİKSİZ KORUNUR!
+    return { ...hwData };
+  }
+  if (isMushatUser(cleanEmail)) {
+    // Mustafa Hoca için: 3/C sınıfının tüm ödev kayıtları EKSİKSİZ KORUNUR!
+    return { ...hwData };
+  }
+  if (isBanuUser(cleanEmail)) {
+    // Banu Hoca için: 2-A sınıfının tüm ödev kayıtları EKSİKSİZ KORUNUR!
+    return { ...hwData };
+  }
+
+  // Diğer öğretmenler için Olcayto Hoca'nın 2-A sınıfındaki 23 öğrencinin ödev kayıtlarını ayıkla
+  const result: Record<string, StudentHomeworkData> = {};
+  Object.entries(hwData).forEach(([k, item]) => {
+    if (!item) return;
+    const norm = normalizeStudentName(item.studentName || '');
+    const isOlcayto = (k.startsWith('std_g2_') && !k.includes('sample')) && OLCAYTO_2A_NAMES_SET.has(norm);
+    if (!isOlcayto) {
+      result[k] = item;
+    }
+  });
+  return result;
 }
 
 function resolveUserId(userId?: string | null): string | null {
@@ -54,33 +108,63 @@ export function calculateTotalHomework(data: Record<string, StudentHomeworkData>
   return Object.values(data).reduce((sum, item) => sum + (item?.homeworkCount || 0), 0);
 }
 
+function resolveMergedHomeworkCount(localItem: StudentHomeworkData, incomingItem: StudentHomeworkData): number {
+  const localUpdatedAt = (localItem as HomeworkDataWithUpdatedAt).updatedAt || '';
+  const incomingUpdatedAt = (incomingItem as HomeworkDataWithUpdatedAt).updatedAt || '';
+
+  // Yeni damgalı kayıt, eski yedekteki daha yüksek değeri de geçersiz kılar.
+  if (localUpdatedAt || incomingUpdatedAt) {
+    if (!localUpdatedAt) return incomingItem.homeworkCount || 0;
+    if (!incomingUpdatedAt) return localItem.homeworkCount || 0;
+    return incomingUpdatedAt >= localUpdatedAt
+      ? (incomingItem.homeworkCount || 0)
+      : (localItem.homeworkCount || 0);
+  }
+
+  // Eski kayıtlarda damga yoksa önceki veri koruma davranışını sürdür.
+  return Math.max(localItem.homeworkCount || 0, incomingItem.homeworkCount || 0);
+}
+
+function getLatestHomeworkUpdateAt(localItem: StudentHomeworkData, incomingItem: StudentHomeworkData): string | undefined {
+  const localUpdatedAt = (localItem as HomeworkDataWithUpdatedAt).updatedAt;
+  const incomingUpdatedAt = (incomingItem as HomeworkDataWithUpdatedAt).updatedAt;
+  if (!localUpdatedAt) return incomingUpdatedAt;
+  if (!incomingUpdatedAt) return localUpdatedAt;
+  return incomingUpdatedAt >= localUpdatedAt ? incomingUpdatedAt : localUpdatedAt;
+}
+
+function nextHomeworkUpdateAt(item?: StudentHomeworkData): string {
+  const previous = item ? Date.parse((item as HomeworkDataWithUpdatedAt).updatedAt || '') || 0 : 0;
+  return new Date(Math.max(Date.now(), previous + 1)).toISOString();
+}
+
 export const DEFAULT_CLASS_23_HOMEWORK_DATA: Record<string, StudentHomeworkData> = {
-  std_g2_1: { studentId: 'std_g2_1', studentName: 'Aybüke', homeworkCount: 10, fishModelIndex: 0, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_2: { studentId: 'std_g2_2', studentName: 'Betül Sare', homeworkCount: 11, fishModelIndex: 1, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_3: { studentId: 'std_g2_3', studentName: 'Buğlem', homeworkCount: 9, fishModelIndex: 2, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_4: { studentId: 'std_g2_4', studentName: 'Çınar Eymen', homeworkCount: 10, fishModelIndex: 3, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_5: { studentId: 'std_g2_5', studentName: 'Derin Defne', homeworkCount: 10, fishModelIndex: 4, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_6: { studentId: 'std_g2_6', studentName: 'Efekan', homeworkCount: 11, fishModelIndex: 5, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_7: { studentId: 'std_g2_7', studentName: 'Elif Su', homeworkCount: 10, fishModelIndex: 6, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_8: { studentId: 'std_g2_8', studentName: 'Eslem', homeworkCount: 10, fishModelIndex: 7, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_9: { studentId: 'std_g2_9', studentName: 'Eymen', homeworkCount: 9, fishModelIndex: 8, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_10: { studentId: 'std_g2_10', studentName: 'Güneş', homeworkCount: 9, fishModelIndex: 9, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_11: { studentId: 'std_g2_11', studentName: 'Harun', homeworkCount: 11, fishModelIndex: 10, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_12: { studentId: 'std_g2_12', studentName: 'Miraç', homeworkCount: 9, fishModelIndex: 11, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_13: { studentId: 'std_g2_13', studentName: 'Muhammed Eymen', homeworkCount: 7, fishModelIndex: 12, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_14: { studentId: 'std_g2_14', studentName: 'Osman Emir', homeworkCount: 11, fishModelIndex: 13, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_15: { studentId: 'std_g2_15', studentName: 'Ömer Asaf', homeworkCount: 10, fishModelIndex: 14, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_16: { studentId: 'std_g2_16', studentName: 'Ömer Faruk', homeworkCount: 8, fishModelIndex: 15, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_17: { studentId: 'std_g2_17', studentName: 'Ravza', homeworkCount: 10, fishModelIndex: 16, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_18: { studentId: 'std_g2_18', studentName: 'Sudem', homeworkCount: 9, fishModelIndex: 17, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_19: { studentId: 'std_g2_19', studentName: 'Umut', homeworkCount: 10, fishModelIndex: 18, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_20: { studentId: 'std_g2_20', studentName: 'Zeynep', homeworkCount: 11, fishModelIndex: 19, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_21: { studentId: 'std_g2_21', studentName: 'Zilan', homeworkCount: 6, fishModelIndex: 20, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_22: { studentId: 'std_g2_22', studentName: 'Öykü Liya', homeworkCount: 10, fishModelIndex: 21, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
-  std_g2_23: { studentId: 'std_g2_23', studentName: 'Harun Ali', homeworkCount: 10, fishModelIndex: 22, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() }
+  std_g2_1: { studentId: 'std_g2_1', studentName: 'Aybüke Yaylak', homeworkCount: 10, fishModelIndex: 0, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_2: { studentId: 'std_g2_2', studentName: 'Betül Sare Topkara', homeworkCount: 11, fishModelIndex: 1, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_3: { studentId: 'std_g2_3', studentName: 'Buğlem Can', homeworkCount: 9, fishModelIndex: 2, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_4: { studentId: 'std_g2_4', studentName: 'Çınar Eymen Karaca', homeworkCount: 10, fishModelIndex: 3, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_5: { studentId: 'std_g2_5', studentName: 'Derin Defne Gökhan', homeworkCount: 10, fishModelIndex: 4, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_6: { studentId: 'std_g2_6', studentName: 'Efekan Yörükoğlu', homeworkCount: 11, fishModelIndex: 5, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_7: { studentId: 'std_g2_7', studentName: 'Elif Su Tekin', homeworkCount: 10, fishModelIndex: 6, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_8: { studentId: 'std_g2_8', studentName: 'Eslem Deri', homeworkCount: 10, fishModelIndex: 7, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_9: { studentId: 'std_g2_9', studentName: 'Eymen Toprak', homeworkCount: 9, fishModelIndex: 8, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_10: { studentId: 'std_g2_10', studentName: 'Güneş Karadoğan', homeworkCount: 9, fishModelIndex: 9, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_11: { studentId: 'std_g2_11', studentName: 'Hatice Kübra', homeworkCount: 10, fishModelIndex: 10, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_12: { studentId: 'std_g2_12', studentName: 'Harun Ali Gökcan', homeworkCount: 10, fishModelIndex: 11, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_13: { studentId: 'std_g2_13', studentName: 'Harun Yıldırım', homeworkCount: 11, fishModelIndex: 12, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_14: { studentId: 'std_g2_14', studentName: 'Miraç Kütük', homeworkCount: 9, fishModelIndex: 13, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_15: { studentId: 'std_g2_15', studentName: 'Muhammed E. Çetin', homeworkCount: 7, fishModelIndex: 14, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_16: { studentId: 'std_g2_16', studentName: 'Osman Emir Öztürk', homeworkCount: 11, fishModelIndex: 15, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_17: { studentId: 'std_g2_17', studentName: 'Ömer Asaf Tekin', homeworkCount: 10, fishModelIndex: 16, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_18: { studentId: 'std_g2_18', studentName: 'Ömer Faruk Öcel', homeworkCount: 8, fishModelIndex: 17, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_19: { studentId: 'std_g2_19', studentName: 'Ravza Fidan', homeworkCount: 10, fishModelIndex: 18, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_20: { studentId: 'std_g2_20', studentName: 'Sudem Can', homeworkCount: 9, fishModelIndex: 19, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_21: { studentId: 'std_g2_21', studentName: 'Umut Kılıç', homeworkCount: 10, fishModelIndex: 20, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_22: { studentId: 'std_g2_22', studentName: 'Zeynep Koç', homeworkCount: 11, fishModelIndex: 21, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() },
+  std_g2_23: { studentId: 'std_g2_23', studentName: 'Zilan Demir', homeworkCount: 6, fishModelIndex: 22, lastCompletedDate: getTodayDateString(), createdAt: new Date().toISOString() }
 };
 
-// İki ödev veri setini güvenli şekilde birleştir (asla ödev sayısını düşürmez veya sıfırlamaz)
+// İki ödev veri setini güvenli şekilde birleştir; en yeni öğretmen düzeltmesi yedek değerinden önceliklidir.
 export function mergeHomeworkData(
   localData: Record<string, StudentHomeworkData> = {},
   remoteData: Record<string, StudentHomeworkData> = {}
@@ -105,34 +189,42 @@ export function mergeHomeworkData(
     const rNorm = normalizeStudentName(rItem.studentName || '');
 
     if (merged[rKey]) {
-      // Aynı ID mevcut: yüksek olan sayıyı ve en güncel tarihi koru
-      const currentCount = merged[rKey].homeworkCount || 0;
-      merged[rKey] = {
-        ...merged[rKey],
+      // Aynı ID mevcut: tarih damgalı en yeni öğretmen düzeltmesini koru.
+      const existingItem = merged[rKey];
+      const latestUpdate = getLatestHomeworkUpdateAt(existingItem, rItem);
+      const nextItem: HomeworkDataWithUpdatedAt = {
+        ...existingItem,
         ...rItem,
-        studentName: rItem.studentName || merged[rKey].studentName,
-        homeworkCount: Math.max(currentCount, rCount),
-        lastCompletedDate: rItem.lastCompletedDate || merged[rKey].lastCompletedDate,
-        fishModelIndex: rItem.fishModelIndex ?? merged[rKey].fishModelIndex ?? 0,
-        createdAt: merged[rKey].createdAt || rItem.createdAt || new Date().toISOString()
+        studentName: rItem.studentName || existingItem.studentName,
+        homeworkCount: resolveMergedHomeworkCount(existingItem, rItem),
+        lastCompletedDate: rItem.lastCompletedDate || existingItem.lastCompletedDate,
+        fishModelIndex: rItem.fishModelIndex ?? existingItem.fishModelIndex ?? 0,
+        createdAt: existingItem.createdAt || rItem.createdAt || new Date().toISOString()
       };
+      if (latestUpdate) nextItem.updatedAt = latestUpdate;
+      merged[rKey] = nextItem;
     } else if (rNorm && nameToKeys.has(rNorm)) {
       // Farklı ID ama aynı öğrenci ismi!
       const existingKeys = nameToKeys.get(rNorm)!;
       existingKeys.forEach(exKey => {
         if (merged[exKey]) {
-          const currentCount = merged[exKey].homeworkCount || 0;
-          merged[exKey].homeworkCount = Math.max(currentCount, rCount);
+          merged[exKey].homeworkCount = resolveMergedHomeworkCount(merged[exKey], rItem);
+          const latestUpdate = getLatestHomeworkUpdateAt(merged[exKey], rItem);
+          if (latestUpdate) (merged[exKey] as HomeworkDataWithUpdatedAt).updatedAt = latestUpdate;
           if (rItem.lastCompletedDate && (!merged[exKey].lastCompletedDate || rItem.lastCompletedDate > merged[exKey].lastCompletedDate!)) {
             merged[exKey].lastCompletedDate = rItem.lastCompletedDate;
           }
         }
       });
       // Ayrıca yeni ID ile de eşitle
-      merged[rKey] = {
+      const matched = merged[existingKeys[0]];
+      const newItem: HomeworkDataWithUpdatedAt = {
         ...rItem,
-        homeworkCount: Math.max(rCount, merged[existingKeys[0]]?.homeworkCount || 0)
+        homeworkCount: matched ? resolveMergedHomeworkCount(matched, rItem) : rCount
       };
+      const latestUpdate = matched ? getLatestHomeworkUpdateAt(matched, rItem) : (rItem as HomeworkDataWithUpdatedAt).updatedAt;
+      if (latestUpdate) newItem.updatedAt = latestUpdate;
+      merged[rKey] = newItem;
     } else {
       // Yeni öğrenci kaydı
       merged[rKey] = { ...rItem };
@@ -153,9 +245,14 @@ export function mergeHomeworkData(
   return merged;
 }
 
-// Tarayıcıdaki tüm ödev yedeklerini (legacy, guest, backup, user slots) toplayıp kurtarır
-export function recoverAllPossibleHomeworkData(userId?: string | null): Record<string, StudentHomeworkData> {
+// Tarayıcıdaki ilgili kullanıcıya ait ödev yedeklerini toplayıp kurtarır
+export function recoverAllPossibleHomeworkData(
+  userId?: string | null,
+  userEmail?: string | null
+): Record<string, StudentHomeworkData> {
   const uid = resolveUserId(userId);
+  const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : currentStoreHomeworkUserEmail;
+  const isOlcayto = isOlcaytoUser(cleanEmail);
   let accumulated: Record<string, StudentHomeworkData> = {};
 
   const checkAndMergeRaw = (raw: string | null) => {
@@ -169,27 +266,29 @@ export function recoverAllPossibleHomeworkData(userId?: string | null): Record<s
   };
 
   try {
-    // 1. Standart bilinen anahtarları kontrol et
+    // 1. Sadece bu kullanıcıya ait bilinen anahtarları kontrol et
     if (uid) {
       checkAndMergeRaw(localStorage.getItem(`odev_akvaryumu_user_${uid}`));
       checkAndMergeRaw(localStorage.getItem(`odev_akvaryumu_backup_${uid}`));
     }
-    checkAndMergeRaw(localStorage.getItem(GLOBAL_BACKUP_KEY));
-    checkAndMergeRaw(localStorage.getItem('odev_akvaryumu_backup_guest'));
-    checkAndMergeRaw(localStorage.getItem(LEGACY_STORAGE_KEY));
+    if (cleanEmail) {
+      checkAndMergeRaw(localStorage.getItem(`odev_akvaryumu_user_${cleanEmail}`));
+      checkAndMergeRaw(localStorage.getItem(`odev_akvaryumu_backup_${cleanEmail}`));
+      checkAndMergeRaw(localStorage.getItem(`odev_akvaryumu_${cleanEmail}`));
+    }
 
-    // 2. Tarayıcıda 'odev_akvaryumu_' ile başlayan her anahtarı tara
-    if (typeof localStorage !== 'undefined') {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('odev_akvaryumu_')) {
-          checkAndMergeRaw(localStorage.getItem(key));
-        }
-      }
+    // 2. Global veya legacy yedekler sadece Olcayto Hoca veya misafir için taranır
+    if (isOlcayto || (!uid && !cleanEmail)) {
+      checkAndMergeRaw(localStorage.getItem(GLOBAL_BACKUP_KEY));
+      checkAndMergeRaw(localStorage.getItem('odev_akvaryumu_backup_guest'));
+      checkAndMergeRaw(localStorage.getItem(LEGACY_STORAGE_KEY));
     }
   } catch (e) {
     console.error('Kurtarma sırasında tarayıcı depolama okuma hatası:', e);
   }
+
+  // Temizle ve izole et
+  accumulated = sanitizeHomeworkForUser(accumulated, cleanEmail);
 
   // Eğer kurtarılan veri varsa aktif anahtara da yaz
   if (Object.keys(accumulated).length > 0) {
@@ -210,9 +309,14 @@ export function recoverAllPossibleHomeworkData(userId?: string | null): Record<s
 }
 
 // LocalStorage'dan tüm ödev verilerini oku (kullanıcıya göre ayrılmış ve otomatik migrasyonlu)
-export function loadHomeworkData(userId?: string | null): Record<string, StudentHomeworkData> {
+export function loadHomeworkData(
+  userId?: string | null,
+  userEmail?: string | null
+): Record<string, StudentHomeworkData> {
   try {
     const uid = resolveUserId(userId);
+    const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : currentStoreHomeworkUserEmail;
+    const isOlcayto = isOlcaytoUser(cleanEmail);
     const key = getHomeworkStorageKey(uid);
     let raw = localStorage.getItem(key);
 
@@ -232,11 +336,13 @@ export function loadHomeworkData(userId?: string | null): Record<string, Student
       }
     });
 
-    const activeTotalCount = calculateTotalHomework(parsed);
+    // Kullanıcıya göre temizle (başkasına Olcayto ödevleri sızmışsa ayıkla)
+    parsed = sanitizeHomeworkForUser(parsed, cleanEmail);
 
-    // Eğer veri boşsa veya toplam ödev sayısı 0 ise, diğer yedek yuvalarını tara ve kurtar
-    if (activeTotalCount === 0) {
-      const recovered = recoverAllPossibleHomeworkData(uid);
+    // Öğrenci kayıtları mevcut ama puanları 0 olabilir; bu da geçerli ve kalıcı bir durumdur.
+    // Yalnızca hiç kayıt yoksa kurtarma/ilk kurulum varsayılanlarını kullan.
+    if (Object.keys(parsed).length === 0) {
+      const recovered = recoverAllPossibleHomeworkData(uid, cleanEmail);
       const recoveredCount = calculateTotalHomework(recovered);
       if (recoveredCount > 0) {
         parsed = mergeHomeworkData(parsed, recovered);
@@ -244,13 +350,45 @@ export function loadHomeworkData(userId?: string | null): Record<string, Student
           localStorage.setItem(key, JSON.stringify(parsed));
         } catch {}
         return parsed;
-      } else {
+      } else if (isOlcayto) {
+        // Olcayto Hoca için 23 kişilik ödev havuzu
         parsed = { ...DEFAULT_CLASS_23_HOMEWORK_DATA };
         try {
           localStorage.setItem(key, JSON.stringify(parsed));
         } catch {}
         return parsed;
+      } else if (isMushatUser(cleanEmail)) {
+        // Mustafa Hoca için 3/C sınıfı (23 öğrenci) ödev ve balık havuzu
+        parsed = { ...MUSHAT_HOMEWORK_DATA };
+        try {
+          localStorage.setItem(key, JSON.stringify(parsed));
+        } catch {}
+        return parsed;
+      } else if (isBanuUser(cleanEmail)) {
+        // Banu Hoca için 2-A sınıfı (23 öğrenci) ödev ve balık havuzu
+        parsed = { ...BANU_HOMEWORK_DATA };
+        try {
+          localStorage.setItem(key, JSON.stringify(parsed));
+        } catch {}
+        return parsed;
+      } else {
+        // Diğer kullanıcılar için temiz boş havuz (kendi öğrencilerini ekledikçe dolar)
+        return {};
       }
+    }
+
+    // Sınıf şablonları yalnızca eksik öğrencileri tamamlar; kayıtlı puanların üzerine yazmaz.
+    const addMissingStudents = (defaults: Record<string, StudentHomeworkData>) => {
+      Object.entries(defaults).forEach(([studentId, item]) => {
+        if (!parsed[studentId]) parsed[studentId] = { ...item };
+      });
+    };
+    if (isMushatUser(cleanEmail)) {
+      addMissingStudents(MUSHAT_HOMEWORK_DATA);
+    } else if (isBanuUser(cleanEmail)) {
+      addMissingStudents(BANU_HOMEWORK_DATA);
+    } else if (isOlcayto) {
+      addMissingStudents(DEFAULT_CLASS_23_HOMEWORK_DATA);
     }
 
     if (hasDemoKeys) {
@@ -267,26 +405,33 @@ export function loadHomeworkData(userId?: string | null): Record<string, Student
 }
 
 // LocalStorage'a kaydet (hem ana anahtara hem de yedeğe kaydeder, sıfırlanmaları engeller)
-export function saveHomeworkData(data: Record<string, StudentHomeworkData>, userId?: string | null): void {
+export function saveHomeworkData(
+  data: Record<string, StudentHomeworkData>,
+  userId?: string | null,
+  userEmail?: string | null,
+  options: { authoritative?: boolean } = {}
+): void {
   try {
     const uid = resolveUserId(userId);
+    const cleanEmail = userEmail ? userEmail.trim().toLowerCase() : currentStoreHomeworkUserEmail;
+    const sanitizedData = sanitizeHomeworkForUser(data, cleanEmail);
     const key = getHomeworkStorageKey(uid);
     const backupKey = getHomeworkBackupKey(uid);
-    const serialized = JSON.stringify(data);
+    const serialized = JSON.stringify(sanitizedData);
 
     // Ana anahtara kaydet
     localStorage.setItem(key, serialized);
 
     // YEDEK KORUMA KURALI:
     // Eğer mevcut yedekte daha fazla ödev varsa, boş veriyle yedeğin üzerine yazma!
-    const newCount = calculateTotalHomework(data);
+    const newCount = calculateTotalHomework(sanitizedData);
     let shouldUpdateBackup = true;
     try {
       const existingBackupRaw = localStorage.getItem(backupKey);
       if (existingBackupRaw && existingBackupRaw !== '{}') {
         const existingBackup = JSON.parse(existingBackupRaw);
         const existingCount = calculateTotalHomework(existingBackup);
-        if (existingCount > newCount && newCount === 0) {
+        if (!options.authoritative && existingCount > newCount && newCount === 0) {
           // Yeni gelen veri boş ama yedekte gerçek veri var! Yedeği koru!
           shouldUpdateBackup = false;
         }
@@ -297,11 +442,14 @@ export function saveHomeworkData(data: Record<string, StudentHomeworkData>, user
       localStorage.setItem(backupKey, serialized);
     }
 
-    // Eğer ödev sayısı > 0 ise global yedek anahtarına da yaz
-    if (newCount > 0) {
+    // Normal kayıtlar global yedeğe pozitif veri yazar. Öğretmenin açık düzeltmesi
+    // tüm sınıfı 0'a indirdiyse yalnızca kendi havuzunu kullanan hesapların boşaltmasına izin ver.
+    const authoritativeEmptyPool = options.authoritative === true &&
+      (isOlcaytoUser(cleanEmail) || (!uid && !cleanEmail));
+    if (newCount > 0 || authoritativeEmptyPool) {
       try {
         localStorage.setItem(GLOBAL_BACKUP_KEY, serialized);
-        if (!localStorage.getItem(LEGACY_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) === '{}') {
+        if (authoritativeEmptyPool || !localStorage.getItem(LEGACY_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) === '{}') {
           localStorage.setItem(LEGACY_STORAGE_KEY, serialized);
         }
       } catch {}
@@ -310,7 +458,7 @@ export function saveHomeworkData(data: Record<string, StudentHomeworkData>, user
     // Diğer pencerelere ve modal'a güncelleme sinyali gönder
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('odev_akvaryumu_saved', { 
-        detail: { userId: uid, count: Object.keys(data).length, totalHomeworkCount: newCount } 
+        detail: { userId: uid, count: Object.keys(sanitizedData).length, totalHomeworkCount: newCount } 
       }));
     }
   } catch (e) {
@@ -335,11 +483,21 @@ export function syncHomeworkWithStudents(
 
   // İsim bazlı arama haritası oluştur (Türkçe normalizasyona göre)
   const normalizedNameMap = new Map<string, StudentHomeworkData>();
+  const preferHomeworkRecord = (candidate: StudentHomeworkData, previous: StudentHomeworkData): boolean => {
+    const candidateAt = (candidate as HomeworkDataWithUpdatedAt).updatedAt || '';
+    const previousAt = (previous as HomeworkDataWithUpdatedAt).updatedAt || '';
+    if (candidateAt || previousAt) {
+      if (!previousAt) return true;
+      if (!candidateAt) return false;
+      return candidateAt > previousAt;
+    }
+    return (candidate.homeworkCount || 0) > (previous.homeworkCount || 0);
+  };
   Object.values(existingData).forEach(item => {
     if (item && item.studentName) {
       const norm = normalizeStudentName(item.studentName);
       const prev = normalizedNameMap.get(norm);
-      if (!prev || ((item.homeworkCount || 0) > (prev.homeworkCount || 0))) {
+      if (!prev || preferHomeworkRecord(item, prev)) {
         normalizedNameMap.set(norm, item);
       }
     }
@@ -354,10 +512,10 @@ export function syncHomeworkWithStudents(
         updated[st.id].studentName = st.name;
       }
       if (normalizedNameMap.has(normName)) {
-        const prevMax = normalizedNameMap.get(normName)!.homeworkCount || 0;
-        if (prevMax > (updated[st.id].homeworkCount || 0)) {
-          updated[st.id].homeworkCount = prevMax;
-        }
+        const preferredRecord = normalizedNameMap.get(normName)!;
+        updated[st.id].homeworkCount = resolveMergedHomeworkCount(updated[st.id], preferredRecord);
+        const latestUpdate = getLatestHomeworkUpdateAt(updated[st.id], preferredRecord);
+        if (latestUpdate) (updated[st.id] as HomeworkDataWithUpdatedAt).updatedAt = latestUpdate;
       }
     } else if (normalizedNameMap.has(normName)) {
       // ID değişmiş (bulut senkronizasyonu vs.), fakat aynı isimli öğrenci daha önce ödev yapmış!
@@ -387,9 +545,10 @@ export function completeHomeworkToday(
   studentId: string,
   studentName: string,
   modelIndex: number = 0,
-  userId?: string | null
+  userId?: string | null,
+  userEmail?: string | null
 ): { success: boolean; isAlreadyDone: boolean; newCount: number } {
-  const allData = loadHomeworkData(userId);
+  const allData = loadHomeworkData(userId, userEmail);
   const today = getTodayDateString();
   const current = allData[studentId] || {
     studentId,
@@ -412,10 +571,11 @@ export function completeHomeworkToday(
     ...current,
     studentName,
     homeworkCount: nextCount,
-    lastCompletedDate: today
-  };
+    lastCompletedDate: today,
+    updatedAt: nextHomeworkUpdateAt(current)
+  } as HomeworkDataWithUpdatedAt;
 
-  saveHomeworkData(allData, userId);
+  saveHomeworkData(allData, userId, userEmail);
 
   return {
     success: true,
@@ -425,8 +585,12 @@ export function completeHomeworkToday(
 }
 
 // Bugünkü ödevi geri al (öğretmen modu/düzeltme için)
-export function undoTodayHomework(studentId: string, userId?: string | null): boolean {
-  const allData = loadHomeworkData(userId);
+export function undoTodayHomework(
+  studentId: string, 
+  userId?: string | null,
+  userEmail?: string | null
+): boolean {
+  const allData = loadHomeworkData(userId, userEmail);
   const today = getTodayDateString();
   const current = allData[studentId];
 
@@ -436,9 +600,41 @@ export function undoTodayHomework(studentId: string, userId?: string | null): bo
 
   current.homeworkCount = Math.max(0, (current.homeworkCount || 1) - 1);
   delete current.lastCompletedDate;
+  (current as HomeworkDataWithUpdatedAt).updatedAt = nextHomeworkUpdateAt(current);
   allData[studentId] = current;
-  saveHomeworkData(allData, userId);
+  saveHomeworkData(allData, userId, userEmail, { authoritative: true });
   return true;
+}
+
+// Öğretmen düzenleme modunda balık puanını bir adım artırır/azaltır.
+// Puan 0'ın altına inmez ve manuel değişiklik eski yedeklerden geri alınmaz.
+export function adjustHomeworkPoints(
+  studentId: string,
+  delta: number,
+  userId?: string | null,
+  userEmail?: string | null
+): { success: boolean; newCount: number } {
+  if (!studentId || !Number.isFinite(delta) || delta === 0) {
+    return { success: false, newCount: 0 };
+  }
+
+  const allData = loadHomeworkData(userId, userEmail);
+  const current = allData[studentId];
+  if (!current) return { success: false, newCount: 0 };
+
+  const newCount = Math.max(0, (current.homeworkCount || 0) + Math.trunc(delta));
+  if (newCount === (current.homeworkCount || 0)) {
+    return { success: false, newCount };
+  }
+
+  allData[studentId] = {
+    ...current,
+    homeworkCount: newCount,
+    updatedAt: nextHomeworkUpdateAt(current)
+  } as HomeworkDataWithUpdatedAt;
+  saveHomeworkData(allData, userId, userEmail, { authoritative: true });
+
+  return { success: true, newCount };
 }
 
 // Balığın büyüme katsayısını hesapla (puanla doğru orantılı)
