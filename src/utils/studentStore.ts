@@ -250,52 +250,141 @@ const OLCAYTO_FULL_NAME_BY_ID: Record<string, string> = {
 };
 
 const OLCAYTO_FULL_NAME_BY_FIRSTNAME: Record<string, string> = {
+  // Spaceless normalized keys (from normalizeStudentName)
   'aybuke': 'Aybüke Yaylak',
-  'betul sare': 'Betül Sare Topkara',
+  'aybukeyaylak': 'Aybüke Yaylak',
+  'betulsare': 'Betül Sare Topkara',
+  'betul': 'Betül Sare Topkara',
+  'betulsaretopkara': 'Betül Sare Topkara',
   'buglem': 'Buğlem Can',
-  'cinar eymen': 'Çınar Eymen Karaca',
-  'derin defne': 'Derin Defne Gökhan',
+  'buglemcan': 'Buğlem Can',
+  'cinareymen': 'Çınar Eymen Karaca',
+  'cinar': 'Çınar Eymen Karaca',
+  'cinareymenkaraca': 'Çınar Eymen Karaca',
+  'derindefne': 'Derin Defne Gökhan',
+  'derin': 'Derin Defne Gökhan',
+  'derindefnegokhan': 'Derin Defne Gökhan',
   'efekan': 'Efekan Yörükoğlu',
-  'elif su': 'Elif Su Tekin',
+  'efekanyorukoglu': 'Efekan Yörükoğlu',
+  'elifsu': 'Elif Su Tekin',
+  'elif': 'Elif Su Tekin',
+  'elifsutekin': 'Elif Su Tekin',
   'eslem': 'Eslem Deri',
+  'eslemderi': 'Eslem Deri',
   'eymen': 'Eymen Toprak',
+  'eymentoprak': 'Eymen Toprak',
   'gunes': 'Güneş Karadoğan',
-  'hatice kubra': 'Hatice Kübra',
+  'guneskaradogan': 'Güneş Karadoğan',
+  'haticekubra': 'Hatice Kübra',
+  'hatice': 'Hatice Kübra',
+  'harunali': 'Harun Ali Gökcan',
+  'harunaligokcan': 'Harun Ali Gökcan',
   'harun': 'Harun Yıldırım',
-  'harun ali': 'Harun Ali Gökcan',
+  'harunyildirim': 'Harun Yıldırım',
   'mirac': 'Miraç Kütük',
+  'mirackutuk': 'Miraç Kütük',
+  'muhammedeymen': 'Muhammed E. Çetin',
+  'muhammedecetin': 'Muhammed E. Çetin',
+  'muhammed': 'Muhammed E. Çetin',
+  'osmanemir': 'Osman Emir Öztürk',
+  'osman': 'Osman Emir Öztürk',
+  'osmanemirozturk': 'Osman Emir Öztürk',
+  'omerasaf': 'Ömer Asaf Tekin',
+  'omerasaftekin': 'Ömer Asaf Tekin',
+  'omerfaruk': 'Ömer Faruk Öcel',
+  'omerfarukocel': 'Ömer Faruk Öcel',
+  'oykuliya': 'Hatice Kübra',
+  'ravza': 'Ravza Fidan',
+  'ravzafidan': 'Ravza Fidan',
+  'sudem': 'Sudem Can',
+  'sudemcan': 'Sudem Can',
+  'umut': 'Umut Kılıç',
+  'umutkilic': 'Umut Kılıç',
+  'zeynep': 'Zeynep Koç',
+  'zeynepkoc': 'Zeynep Koç',
+  'zilan': 'Zilan Demir',
+  'zilandemir': 'Zilan Demir',
+
+  // Raw spaced keys as backup
+  'aybuke yaylak': 'Aybüke Yaylak',
+  'betul sare': 'Betül Sare Topkara',
+  'betul sare topkara': 'Betül Sare Topkara',
+  'buglem can': 'Buğlem Can',
+  'cinar eymen': 'Çınar Eymen Karaca',
+  'cinar eymen karaca': 'Çınar Eymen Karaca',
+  'derin defne': 'Derin Defne Gökhan',
+  'derin defne gokhan': 'Derin Defne Gökhan',
+  'efekan yorukoglu': 'Efekan Yörükoğlu',
+  'elif su': 'Elif Su Tekin',
+  'elif su tekin': 'Elif Su Tekin',
+  'eslem deri': 'Eslem Deri',
+  'eymen toprak': 'Eymen Toprak',
+  'gunes karadogan': 'Güneş Karadoğan',
+  'hatice kubra': 'Hatice Kübra',
+  'harun ali': 'Harun Ali Gökcan',
+  'harun ali gokcan': 'Harun Ali Gökcan',
+  'harun yildirim': 'Harun Yıldırım',
+  'mirac kutuk': 'Miraç Kütük',
   'muhammed eymen': 'Muhammed E. Çetin',
+  'muhammed e. cetin': 'Muhammed E. Çetin',
   'muhammed e cetin': 'Muhammed E. Çetin',
   'osman emir': 'Osman Emir Öztürk',
+  'osman emir ozturk': 'Osman Emir Öztürk',
   'omer asaf': 'Ömer Asaf Tekin',
+  'omer asaf tekin': 'Ömer Asaf Tekin',
   'omer faruk': 'Ömer Faruk Öcel',
+  'omer faruk ocel': 'Ömer Faruk Öcel',
   'oyku liya': 'Hatice Kübra',
-  'ravza': 'Ravza Fidan',
-  'sudem': 'Sudem Can',
-  'umut': 'Umut Kılıç',
-  'zeynep': 'Zeynep Koç',
-  'zilan': 'Zilan Demir'
+  'ravza fidan': 'Ravza Fidan',
+  'sudem can': 'Sudem Can',
+  'umut kilic': 'Umut Kılıç',
+  'zeynep koc': 'Zeynep Koç',
+  'zilan demir': 'Zilan Demir'
 };
 
 /**
- * olcaytohokul@gmail.com sınıf listesindeki öğrencilere 2. isim ve soyadlarını otomatik ekler.
+ * 23 kişilik sınıf listesindeki öğrencilere 2. isim ve soyadlarını otomatik ekler.
  * Mevcut çözülen soru ve oyun istatistiklerini kesinlikle sıfırlamadan korur.
  */
 export function upgradeOlcaytoStudentNames(students: Student[], userEmail?: string | null): Student[] {
+  if (!Array.isArray(students) || students.length === 0) return [];
   const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
-  if (!isOlcaytoUser(email)) return students;
+  const isOlcayto = isOlcaytoUser(email);
+  const isBanu = isBanuUser(email);
 
   return students.map(s => {
-    if (s.grade === 2 || s.className === '2-C') {
-      const byId = OLCAYTO_FULL_NAME_BY_ID[s.id];
-      if (byId) {
-        return { ...s, name: byId, className: '2-C' };
-      }
+    if (!s || !s.name) return s;
+
+    // Check by ID first (std_g2_1 .. std_g2_23)
+    let newFullName: string | null = (s.id && OLCAYTO_FULL_NAME_BY_ID[s.id]) ? OLCAYTO_FULL_NAME_BY_ID[s.id] : null;
+
+    if (!newFullName) {
+      // Check by normalized name (without spaces or accents)
       const norm = normalizeStudentName(s.name);
-      const byFirst = OLCAYTO_FULL_NAME_BY_FIRSTNAME[norm];
-      if (byFirst) {
-        return { ...s, name: byFirst, className: '2-C' };
+      newFullName = OLCAYTO_FULL_NAME_BY_FIRSTNAME[norm] || null;
+    }
+
+    if (!newFullName) {
+      // Check raw lowercase trimmed
+      const rawLower = s.name.trim().toLowerCase();
+      newFullName = OLCAYTO_FULL_NAME_BY_FIRSTNAME[rawLower] || null;
+    }
+
+    if (newFullName) {
+      let preferredClass = s.className;
+      if (isOlcayto) {
+        preferredClass = '2-C';
+      } else if (isBanu) {
+        preferredClass = (preferredClass === '2-A' || !preferredClass) ? '2-B' : preferredClass;
+      } else if (!preferredClass) {
+        preferredClass = '2-C';
       }
+      return {
+        ...s,
+        name: newFullName,
+        className: preferredClass,
+        grade: 2
+      };
     }
     return s;
   });
@@ -309,9 +398,8 @@ export function deduplicateStudents(students: Student[] = [], userEmail?: string
   if (!Array.isArray(students) || students.length === 0) return [];
   const effectiveEmail = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
 
-  const preparedStudents = isOlcaytoUser(effectiveEmail)
-    ? upgradeOlcaytoStudentNames(students, effectiveEmail)
-    : students;
+  // Always upgrade Olcayto's 23 students so 2nd names and surnames are guaranteed
+  const preparedStudents = upgradeOlcaytoStudentNames(students, effectiveEmail);
 
   const map = new Map<string, Student>();
   const order: string[] = [];
@@ -663,10 +751,14 @@ export function loadStudents(userId?: string | null, userEmail?: string | null):
         ...s,
         grade: (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2
       }));
-      if (isOlcaytoUser(email)) {
-        mapped = upgradeOlcaytoStudentNames(mapped, email);
+      const upgraded = upgradeOlcaytoStudentNames(mapped, email);
+      const anyChange = upgraded.some((s, idx) => s.name !== parsed[idx]?.name || s.className !== parsed[idx]?.className);
+      if (anyChange) {
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(upgraded));
+        } catch {}
       }
-      return mapped;
+      return upgraded;
     }
 
     // If the user has already initialized and roster is empty, respect user choice
@@ -681,7 +773,13 @@ export function loadStudents(userId?: string | null, userEmail?: string | null):
         try {
           parsed = JSON.parse(legacyRaw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
+            let mapped: Student[] = parsed.map((s: any) => ({
+              ...s,
+              grade: (s.grade && [1, 2, 3, 4].includes(Number(s.grade))) ? Number(s.grade) : 2
+            }));
+            const upgraded = upgradeOlcaytoStudentNames(mapped, email);
+            saveStudents(upgraded, uid);
+            return upgraded;
           }
         } catch {}
       }

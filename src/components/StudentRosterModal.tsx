@@ -36,7 +36,8 @@ import {
   restoreDefaultStudents,
   restoreDefaultStudentsForGrade,
   deduplicateStudents,
-  promoteStudentsGrade
+  promoteStudentsGrade,
+  upgradeOlcaytoStudentNames
 } from '../utils/studentStore';
 import { exportStudentsToPDF } from '../utils/studentPdfExport';
 import { downloadDataToPC } from '../utils/backupFileService';
@@ -83,6 +84,18 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
       setExpandedStudentId(null);
     }
   }, [isOpen, currentGrade]);
+
+  // Otomatik olarak eksik soyadları ve 2. isimleri tamamla ve kaydet
+  useEffect(() => {
+    if (isOpen && Array.isArray(students) && students.length > 0) {
+      const upgraded = upgradeOlcaytoStudentNames(students, currentUser?.email);
+      const isDifferent = upgraded.some((s, i) => s.name !== students[i]?.name || s.className !== students[i]?.className);
+      if (isDifferent) {
+        saveStudents(upgraded, currentUser?.uid);
+        onStudentsUpdated(upgraded);
+      }
+    }
+  }, [isOpen, students, currentUser]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [classFilter, setClassFilter] = useState<string>('ALL');
