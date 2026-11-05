@@ -343,9 +343,9 @@ export const StudentRosterModal: React.FC<StudentRosterModalProps> = ({
     playMp3?.('/op.mp3');
     let updated: Student[];
     if (activeGradeTab === 'ALL') {
-      updated = resetAllStudentStats();
+      updated = resetAllStudentStats(currentUser?.uid, currentUser?.email);
     } else {
-      updated = resetGradeStudentStats(activeGradeTab);
+      updated = resetGradeStudentStats(activeGradeTab, currentUser?.uid, currentUser?.email);
     }
     onStudentsUpdated(updated);
     onResetGameStats?.(activeGradeTab);

@@ -503,10 +503,21 @@ export const AndroidAppsModal: React.FC<AndroidAppsModalProps> = ({
         </div>
 
         {/* FOOTER */}
-        <div className="px-3 sm:px-6 py-2.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1.5 text-[10.5px] sm:text-xs text-slate-400 font-medium">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Tüm Android cihazlarla (Telefon, Tablet, Akıllı Tahta) uyumludur</span>
+        <div className="px-3 sm:px-6 py-2.5 bg-slate-950/90 border-t border-slate-800 flex items-center justify-between shrink-0 gap-2 flex-wrap">
+          <div className="flex items-center gap-3 text-[10.5px] sm:text-xs text-slate-400 font-medium">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Tüm Android cihazlarla (Telefon, Tablet, Akıllı Tahta) uyumludur</span>
+            </span>
+            <span className="text-slate-600">•</span>
+            <a
+              href="/hizmet-sartlari"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-300 hover:text-emerald-300 underline font-semibold transition"
+            >
+              Hizmet Şartları
+            </a>
           </div>
 
           <button
@@ -514,7 +525,7 @@ export const AndroidAppsModal: React.FC<AndroidAppsModalProps> = ({
               playMp3?.('/op.mp3');
               onClose();
             }}
-            className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer ml-auto"
           >
             Kapat
           </button>

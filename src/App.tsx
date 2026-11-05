@@ -3852,12 +3852,16 @@ export default function App() {
     setNewlyUnlockedBadge(null);
 
     // Reset all student stats
-    const resetStudents = resetAllStudentStats();
+    const resetStudents = resetAllStudentStats(currentUser?.uid, currentUser?.email);
     setStudents(resetStudents);
+
+    // Reset all category and question counters to zero
+    const clearedCounters = resetAllCounters();
+    setCountersData(clearedCounters);
 
     // Cloud sync
     if (currentUser) {
-      saveUserDataToCloud(currentUser.uid, resetStudents, countersData, selectedStudentIds, currentUser.email).catch(e => {
+      saveUserDataToCloud(currentUser.uid, resetStudents, clearedCounters, selectedStudentIds, currentUser.email).catch(e => {
         console.error('Cloud sync after all reset failed:', e);
       });
     }
@@ -12046,6 +12050,11 @@ export default function App() {
         students={students}
         currentGrade={selectedGrade || 2}
         playMp3={playMp3}
+        onSelectStudent={(studentId, studentName) => {
+          setSelectedStudentIds(prev => [studentId, prev[1] || null, prev[2] || null]);
+          setActivityToast(`🎯 Seçilen Öğrenci: ${studentName}`);
+          setTimeout(() => setActivityToast(null), 3000);
+        }}
       />
 
       {/* FULL SCREEN GAME INTRO OVERLAY */}

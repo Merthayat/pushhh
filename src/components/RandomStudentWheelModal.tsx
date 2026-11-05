@@ -9,6 +9,7 @@ interface RandomStudentWheelModalProps {
   students?: Student[];
   currentGrade?: number;
   playMp3?: (src: string) => void;
+  onSelectStudent?: (studentId: string, studentName: string) => void;
 }
 
 const FALLBACK_NAMES = [
@@ -28,7 +29,8 @@ export const RandomStudentWheelModal: React.FC<RandomStudentWheelModalProps> = (
   onClose,
   students = [],
   currentGrade = 2,
-  playMp3
+  playMp3,
+  onSelectStudent
 }) => {
   // Sınıf öğrencilerini filtrele veya varsayılan isimleri al
   const initialList = React.useMemo(() => {
@@ -228,7 +230,7 @@ export const RandomStudentWheelModal: React.FC<RandomStudentWheelModalProps> = (
 
         {/* KAZANAN ÖĞRENCİ KUTUSU */}
         {winner && (
-          <div className="w-full my-2 p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-amber-500/20 border-2 border-emerald-400 animate-bounce flex flex-col items-center text-center shadow-lg">
+          <div className="w-full my-2 p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-amber-500/20 border-2 border-emerald-400 animate-fadeIn flex flex-col items-center text-center shadow-lg">
             <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-bold uppercase tracking-wider">
               <Trophy className="w-4 h-4 text-amber-400" />
               Sıradaki Soruyu Yanıtlıyor!
@@ -236,6 +238,21 @@ export const RandomStudentWheelModal: React.FC<RandomStudentWheelModalProps> = (
             <div className="text-xl sm:text-2xl font-black text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] mt-0.5">
               🌟 {winner} 🌟
             </div>
+            {onSelectStudent && (
+              <button
+                type="button"
+                onClick={() => {
+                  const matched = students.find(s => s.name === winner || s.name.toLowerCase().includes(winner.toLowerCase()));
+                  if (matched) {
+                    onSelectStudent(matched.id, matched.name);
+                  }
+                  onClose();
+                }}
+                className="mt-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-md border border-emerald-300 flex items-center gap-1.5 cursor-pointer active:scale-95 transition"
+              >
+                <span>🎮 Bu Öğrenciyle Etkinliğe Başla</span>
+              </button>
+            )}
           </div>
         )}
 

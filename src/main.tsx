@@ -98,10 +98,42 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
+import { HizmetSartlariPage } from './pages/HizmetSartlariPage';
+
+function RootComponent() {
+  const [currentPath, setCurrentPath] = React.useState(() => {
+    return typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
+  });
+
+  React.useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname.toLowerCase());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const search = typeof window !== 'undefined' ? window.location.search.toLowerCase() : '';
+  const hash = typeof window !== 'undefined' ? window.location.hash.toLowerCase() : '';
+
+  const isHizmetSartlari = 
+    currentPath.includes('/hizmet-sartlari') ||
+    currentPath.endsWith('hizmet-sartlari.html') ||
+    currentPath.endsWith('hizmet-sartlari') ||
+    search.includes('page=hizmet-sartlari') ||
+    hash.includes('hizmet-sartlari');
+
+  if (isHizmetSartlari) {
+    return <HizmetSartlariPage />;
+  }
+
+  return <App />;
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <RootComponent />
     </ErrorBoundary>
   </StrictMode>,
 );

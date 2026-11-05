@@ -1082,8 +1082,10 @@ export function recordStudentGameResult(
   return students;
 }
 
-export function resetAllStudentStats(): Student[] {
-  const students = loadStudents();
+export function resetAllStudentStats(userId?: string | null, userEmail?: string | null): Student[] {
+  const uid = userId !== undefined ? userId : currentStoreUserId;
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  const students = loadStudents(uid, email);
   const reset = students.map(s => ({
     ...s,
     totalCorrect: 0,
@@ -1092,12 +1094,31 @@ export function resetAllStudentStats(): Student[] {
     gamesWon: 0,
     topicStats: {}
   }));
-  saveStudents(reset);
+  saveStudents(reset, uid);
+
+  // Clear backup slots and update multi-user vault so old numbers (like 671/181) can NEVER resurrect
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keysToClear = [
+        uid ? `classroom_students_backup_${uid}` : '',
+        email ? `classroom_students_backup_${email}` : '',
+        'classroom_students_backup_v1',
+        'classroom_students_backup_guest_v1'
+      ].filter(Boolean);
+      keysToClear.forEach(k => {
+        try { localStorage.removeItem(k); } catch {}
+      });
+      if (uid) saveToMultiUserVault(uid, reset, { userId: uid, userEmail: email || undefined });
+      if (email) saveToMultiUserVault(email, reset, { userId: uid || undefined, userEmail: email });
+    }
+  } catch {}
   return reset;
 }
 
-export function resetGradeStudentStats(grade: number): Student[] {
-  const students = loadStudents();
+export function resetGradeStudentStats(grade: number, userId?: string | null, userEmail?: string | null): Student[] {
+  const uid = userId !== undefined ? userId : currentStoreUserId;
+  const email = (userEmail || currentStoreUserEmail || '').trim().toLowerCase();
+  const students = loadStudents(uid, email);
   const reset = students.map(s => {
     if (s.grade === grade) {
       return {
@@ -1111,7 +1132,14 @@ export function resetGradeStudentStats(grade: number): Student[] {
     }
     return s;
   });
-  saveStudents(reset);
+  saveStudents(reset, uid);
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      if (uid) saveToMultiUserVault(uid, reset, { userId: uid, userEmail: email || undefined });
+      if (email) saveToMultiUserVault(email, reset, { userId: uid || undefined, userEmail: email });
+    }
+  } catch {}
   return reset;
 }
 
